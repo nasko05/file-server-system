@@ -1,6 +1,5 @@
 use std::io::Write;
 use actix_multipart::Multipart;
-use actix_web::HttpResponse;
 use futures_util::TryStreamExt;
 
 fn sanitize_filename(name: &str) -> String {
@@ -12,7 +11,7 @@ fn sanitize_filename(name: &str) -> String {
 pub(crate) async fn save_file_to_root_directory(payload: &mut Multipart, root_directory: &str) -> bool {
 
     // Process each field in the multipart form
-    while let Some(item) = payload.try_next().await? {
+    while let Some(item) = payload.try_next().await {
         let mut field = item;
         let content_disposition = field.content_disposition();
 
@@ -31,5 +30,5 @@ pub(crate) async fn save_file_to_root_directory(payload: &mut Multipart, root_di
             }
         }
     }
-    return true
+    true
 }
