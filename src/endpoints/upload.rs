@@ -3,7 +3,8 @@ use actix_multipart::Multipart;
 use actix_web::{post, web, Error, HttpResponse};
 use futures_util::TryStreamExt;
 use crate::ROOT_DIR;
-mod file_utilities;
+use crate::utilities::file_utilities::save_file_to_root_directory;
+
 #[post("/upload")]
 async fn upload_file(mut payload: Multipart) -> Result<HttpResponse, Error> {
     save_file_to_root_directory(&mut payload, ROOT_DIR).await;

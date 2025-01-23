@@ -9,7 +9,7 @@ fn sanitize_filename(name: &str) -> String {
         .collect()
 }
 
-async fn save_file_to_root_directory(payload: &mut Multipart, root_directory: &str) -> bool {
+pub(crate) async fn save_file_to_root_directory(payload: &mut Multipart, root_directory: &str) -> bool {
 
     // Process each field in the multipart form
     while let Some(item) = payload.try_next().await? {
