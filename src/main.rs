@@ -8,16 +8,19 @@ mod endpoints;
 mod utilities;
 mod services;
 mod models;
+mod dao;
 
 use crate::endpoints::download::download_file_from_root_directory;
 use crate::endpoints::download::download_file_from_user_directory;
 use crate::endpoints::upload::upload_file_from_root_directory;
 use crate::endpoints::upload::upload_file_from_user_directory;
+use dotenv::dotenv;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Ensure the upload directory exists
     std::fs::create_dir_all(ROOT_DIR)?;
+    dotenv().ok();
 
     println!("Server running on http://0.0.0.0:8080");
 
