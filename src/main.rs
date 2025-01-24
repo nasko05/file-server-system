@@ -14,6 +14,8 @@ use crate::endpoints::download::download_file_from_root_directory;
 use crate::endpoints::download::download_file_from_user_directory;
 use crate::endpoints::upload::upload_file_from_root_directory;
 use crate::endpoints::upload::upload_file_from_user_directory;
+use crate::endpoints::system_operations::get_user_directory;
+
 use dotenv::dotenv;
 
 #[tokio::main]
@@ -35,7 +37,8 @@ async fn main() -> std::io::Result<()> {
                     .service(download_file_from_root_directory)
                     .service(download_file_from_user_directory)
                     .service(upload_file_from_root_directory)
-                    .service(upload_file_from_user_directory) // <--
+                    .service(upload_file_from_user_directory)
+                    .service(get_user_directory)
             )
     })
         .bind(("0.0.0.0", 8080))?
