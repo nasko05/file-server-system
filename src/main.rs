@@ -7,8 +7,10 @@ static ROOT_DIR: &str = "./root";
 mod endpoints;
 mod utilities;
 
-use crate::endpoints::download::download_file;
-use crate::endpoints::upload::upload_file;
+use crate::endpoints::download::download_file_from_root_directory;
+use crate::endpoints::download::download_file_from_user_directory;
+use crate::endpoints::upload::upload_file_from_root_directory;
+use crate::endpoints::upload::upload_file_from_user_directory;
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
@@ -19,8 +21,10 @@ async fn main() -> std::io::Result<()> {
 
     HttpServer::new(|| {
         App::new()
-            .service(download_file)
-            .service(upload_file)
+            .service(download_file_from_root_directory)
+            .service(download_file_from_user_directory)
+            .service(upload_file_from_root_directory)
+            .service(upload_file_from_user_directory)
     })
         .bind(("0.0.0.0", 8080))?
         .run()

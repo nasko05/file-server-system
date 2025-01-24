@@ -12,3 +12,4 @@ env_logger = "0.11.6"
 serde = { version = "1.0.217", features = ["derive"] }
 chrono = "0.4.39"
 uuid = { version = "1.12.1", features = ["v4"] }
+log = "0.4.25"
