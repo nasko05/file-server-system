@@ -20,7 +20,7 @@ pub(crate) async fn save_file_to_root_directory(
         let mut field = item;
         let content_disposition = field.content_disposition();
 
-        if let Some(filename) = content_disposition.get_filename() {
+        if let Some(filename) = content_disposition.expect("File saving fails").get_filename() {
             let filename = sanitize_filename(filename);
             let filepath = join_user_directory(user_directory, filename.as_str());
 

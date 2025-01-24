@@ -1,6 +1,8 @@
 use once_cell::sync::Lazy;
-use postgres::{Client, NoTls};
+use postgres::{Client, NoTls, Row};
 use std::sync::Mutex;
+extern crate bcrypt;
+use bcrypt::{verify};
 
 // A global static that initializes once on first use.
 static GLOBAL_DB_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
@@ -27,7 +29,7 @@ pub fn get_db_client() -> std::sync::MutexGuard<'static, Client> {
     GLOBAL_DB_CLIENT.lock().expect("Failed to lock the global client")
 }
 
-pub fn verify_user_credentials(username: &str, password: &str) -> Result<(), String> {
+pub fn verify_user_credentials(username: &str, password: &str) -> Result<String, String> {
     // Acquire the lock
     let mut client = get_db_client();
 
@@ -41,6 +43,16 @@ pub fn verify_user_credentials(username: &str, password: &str) -> Result<(), Str
         return Err("User not found".into());
     }
 
-    // ... more logic to verify password, etc ...
-    Ok(())
+    let row: &Row = &rows[0];
+    let password_hash: String = row
+        .get("password_hash"); // Make sure this column name matches your table schema.
+
+    // Use bcrypt (or another library) to verify password vs. the stored hash.
+    let valid = verify(password, &password_hash)
+        .map_err(|e| e.to_string())?;
+
+    match valid {
+        true => Ok(username.into()),
+        false => Err("User not found".into()),
+    }
 }

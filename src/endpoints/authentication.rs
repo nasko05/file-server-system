@@ -1,5 +1,6 @@
 use actix_web::{post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
+use crate::dao::login_verification::verify_user_credentials;
 use crate::services::authentication_service::{generate_jwt};
 use crate::services::authentication_service::Claims;
 
@@ -11,8 +12,12 @@ pub struct UserLogin {
 
 #[post("/login")]
 pub async fn login_handler(user_info: web::Json<UserLogin>) -> impl Responder {
-    // TODO: Normally, you'd validate `user_info.username` and `user_info.password` against a database.
-    let user_id = "user_id_123".to_owned();
+    let user_id = match verify_user_credentials(
+        user_info.username.as_str(), user_info.password.as_str()
+    ) {
+        Ok(id) => id,
+        Err(e) => return HttpResponse::InternalServerError().body(format!("{:?}", e))
+    };
     match generate_jwt(user_id) {
         Ok(token) => HttpResponse::Ok().json(serde_json::json!({ "token": token })),
         Err(_) => HttpResponse::InternalServerError().body("Could not generate token"),

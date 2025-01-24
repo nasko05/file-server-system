@@ -41,7 +41,7 @@ where
         self.service.poll_ready(cx)
     }
 
-    fn call(&self, mut req: ServiceRequest) -> Self::Future {
+    fn call(&self, req: ServiceRequest) -> Self::Future {
         if let Some(header) = req.headers().get("Authorization") {
             if let Ok(auth_str) = header.to_str() {
                 if auth_str.starts_with("Bearer ") {
