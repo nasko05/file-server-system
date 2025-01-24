@@ -16,9 +16,9 @@ async fn upload_file_from_root_directory(mut payload: Multipart) -> impl Respond
 async fn upload_file_from_user_directory(user_uuid: web::Path<String>, mut payload: Multipart)
     -> impl Responder {
     let user_path = format!("{}/{}", ROOT_DIR, user_uuid);
-    if Path::new(&user_path).exists() {
+    if !Path::new(&user_path).exists() {
         // Ensure the upload directory exists
-        match std::fs::create_dir_all(ROOT_DIR) {
+        match std::fs::create_dir_all(&user_path) {
             Ok(_) => (),
             Err(err) => return HttpResponse::InternalServerError().body(err.to_string()),
         }

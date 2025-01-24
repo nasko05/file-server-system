@@ -2,6 +2,7 @@ use actix_multipart::Multipart;
 use actix_web::{HttpRequest, HttpResponse, Responder};
 use futures_util::TryStreamExt;
 use log::info;
+use percent_encoding::percent_decode_str;
 use tokio::io::AsyncWriteExt;
 use crate::ROOT_DIR;
 
@@ -45,7 +46,7 @@ pub(crate) async fn save_file_to_root_directory(
 
 pub(crate) async fn read_file_from_directory(
     req: HttpRequest,
-    user_directory: &str
+    user_directory: &str,
 ) -> impl Responder {
     let query_str = req.query_string();
     let parts: Vec<&str> = query_str.split('=').collect();
@@ -53,12 +54,20 @@ pub(crate) async fn read_file_from_directory(
         return HttpResponse::BadRequest().body("Missing or invalid 'filename' parameter.");
     }
 
-    let filename = parts[1];
-    let filepath = join_user_directory(user_directory, filename);
+    let encoded_filename = parts[1];
+    let decoded_filename = match percent_decode_str(encoded_filename).decode_utf8() {
+        Ok(decoded) => decoded.into_owned(),
+        Err(_) => {
+            return HttpResponse::BadRequest().body("Failed to decode 'filename' parameter.");
+        }
+    };
+
+    let filepath = join_user_directory(user_directory, &decoded_filename);
     info!("This is the resulting path: {}", filepath);
+
     match std::fs::read(&filepath) {
         Ok(contents) => HttpResponse::Ok().body(contents),
-        Err(_) => HttpResponse::NotFound().body(format!("File '{}' not found", filename)),
+        Err(_) => HttpResponse::NotFound().body(format!("File '{}' not found", decoded_filename)),
     }
 }
 
