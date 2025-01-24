@@ -13,7 +13,7 @@ async fn get_user_directory(
 
     // TODO: check privileges
     // Compare the route param to the user's token role
-    if *dir_name != claims.sub && claims.sub != "admin"{
+    if *dir_name != claims.sub && claims.sub != "admin" {
         // If they don't match, return 403
         return Err(error::ErrorForbidden(format!(
             "Your token role is '{}', but you tried to access '{}'",
