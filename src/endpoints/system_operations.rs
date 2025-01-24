@@ -1,5 +1,6 @@
 use std::path::PathBuf;
 use actix_web::{error, get, web, HttpResponse, Responder};
+use crate::dao::login_verification::check_privileges;
 use crate::models::auth_user::AuthenticatedUser;
 use crate::services::directory_service::build_dir_tree;
 
@@ -11,9 +12,11 @@ async fn get_user_directory(
     let dir_name = &path.0;
     let claims = auth_user.0; // 'claims' is the decoded JWT data
 
-    // TODO: check privileges
+    let to_be_accessed = check_privileges(dir_name).await.expect(format!("The role {} does not exist", dir_name).into());
+    let actual_privileges = check_privileges(claims.sub.as_str()).await.expect(format!("The role {} does not exist", claims.sub.as_str()).into());
+
     // Compare the route param to the user's token role
-    if *dir_name != claims.sub && claims.sub != "admin" {
+    if actual_privileges < to_be_accessed {
         // If they don't match, return 403
         return Err(error::ErrorForbidden(format!(
             "Your token role is '{}', but you tried to access '{}'",

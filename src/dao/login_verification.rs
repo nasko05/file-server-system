@@ -64,3 +64,30 @@ pub async fn verify_user_credentials(username: &str, password: &str) -> Result<S
         Err("Invalid credentials".to_string())
     }
 }
+
+pub async fn check_privileges(user_role: &str) -> Result<&i32, String> {
+
+    // Acquire a client from the pool (async)
+    let client = DB_POOL
+        .get()
+        .await
+        .map_err(|e| format!("Failed to get client from pool: {}", e))?;
+
+    // Query the stored password hash
+    let rows = client
+        .query(
+            "SELECT privelege_level FROM privelege_level WHERE role = $1",
+            &[&user_role],
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+
+    if rows.is_empty() {
+        return Err("User not found".to_string());
+    }
+
+    // Extract the password hash from the first row
+    let row = &rows[0];
+    let privilege = row.get("privelege_level");
+    privilege
+}
