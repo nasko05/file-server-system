@@ -1,58 +1,66 @@
+use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
+use tokio_postgres::{Config, NoTls};
 use once_cell::sync::Lazy;
-use postgres::{Client, NoTls, Row};
-use std::sync::Mutex;
-extern crate bcrypt;
-use bcrypt::{verify};
+use std::env;
+use bcrypt::verify;
 
-// A global static that initializes once on first use.
-static GLOBAL_DB_CLIENT: Lazy<Mutex<Client>> = Lazy::new(|| {
-    let host = std::env::var("POSTGRESQL_HOST").expect("POSTGRESQL_HOST must be set.");
-    let user = std::env::var("POSTGRESQL_USER").expect("POSTGRESQL_USER must be set.");
-    let pass = std::env::var("POSTGRESQL_PASSWORD").expect("POSTGRESQL_PASSWORD must be set.");
-    let port = std::env::var("POSTGRESQL_PORT").expect("POSTGRESQL_PORT must be set.");
-    let database = std::env::var("POSTGRESQL_DATABASE").expect("POSTGRESQL_DATABASE must be set.");
+static DB_POOL: Lazy<Pool> = Lazy::new(|| {
+    let host = env::var("POSTGRESQL_HOST").expect("POSTGRESQL_HOST must be set");
+    let user = env::var("POSTGRESQL_USER").expect("POSTGRESQL_USER must be set");
+    let pass = env::var("POSTGRESQL_PASSWORD").expect("POSTGRESQL_PASSWORD must be set");
+    let port = env::var("POSTGRESQL_PORT").expect("POSTGRESQL_PORT must be set");
+    let db   = env::var("POSTGRESQL_DATABASE").expect("POSTGRESQL_DATABASE must be set");
 
-    let connection_str = format!(
-        "host={} user={} password={} port={} dbname={}",
-        host, user, pass, port, database
-    );
+    let mut cfg = Config::new();
+    cfg.host(&host);
+    cfg.user(&user);
+    cfg.password(&pass);
+    cfg.dbname(&db);
+    cfg.port(port.parse().expect("POSTGRESQL_PORT must be a valid integer"));
 
-    // Panic on error, or you could handle it differently:
-    let client = Client::connect(&connection_str, NoTls)
-        .expect("Failed to initialize global database client");
+    let mgr_config = ManagerConfig {
+        recycling_method: RecyclingMethod::Fast
+    };
 
-    Mutex::new(client)
+    let mgr = Manager::from_config(cfg, NoTls, mgr_config);
+
+    Pool::builder(mgr)
+        .max_size(16) // set max connections
+        .build()
+        .expect("Failed to create Deadpool Postgres pool")
 });
 
-/// Access the client from anywhere
-pub fn get_db_client() -> std::sync::MutexGuard<'static, Client> {
-    GLOBAL_DB_CLIENT.lock().expect("Failed to lock the global client")
-}
+// 2) An async function to verify user credentials
+pub async fn verify_user_credentials(username: &str, password: &str) -> Result<String, String> {
+    // Acquire a client from the pool (async)
+    let client = DB_POOL
+        .get()
+        .await
+        .map_err(|e| format!("Failed to get client from pool: {}", e))?;
 
-pub fn verify_user_credentials(username: &str, password: &str) -> Result<String, String> {
-    // Acquire the lock
-    let mut client = get_db_client();
-
-    // Use `client`...
-    // e.g., do a simple query
+    // Query the stored password hash
     let rows = client
-        .query("SELECT password_hash FROM users WHERE username = $1", &[&username])
+        .query(
+            "SELECT password_hash FROM users WHERE username = $1",
+            &[&username],
+        )
+        .await
         .map_err(|e| e.to_string())?;
 
     if rows.is_empty() {
-        return Err("User not found".into());
+        return Err("User not found".to_string());
     }
 
-    let row: &Row = &rows[0];
-    let password_hash: String = row
-        .get("password_hash"); // Make sure this column name matches your table schema.
+    // Extract the password hash from the first row
+    let row = &rows[0];
+    let hash: String = row.get("password_hash");
 
-    // Use bcrypt (or another library) to verify password vs. the stored hash.
-    let valid = verify(password, &password_hash)
-        .map_err(|e| e.to_string())?;
+    // Compare the provided password with the stored hash
+    let valid = verify(password, &hash).map_err(|e| e.to_string())?;
 
-    match valid {
-        true => Ok(username.into()),
-        false => Err("User not found".into()),
+    if valid {
+        Ok(username.to_string())
+    } else {
+        Err("Invalid credentials".to_string())
     }
 }

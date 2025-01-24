@@ -14,7 +14,7 @@ pub struct UserLogin {
 pub async fn login_handler(user_info: web::Json<UserLogin>) -> impl Responder {
     let user_id = match verify_user_credentials(
         user_info.username.as_str(), user_info.password.as_str()
-    ) {
+    ).await {
         Ok(id) => id,
         Err(e) => return HttpResponse::InternalServerError().body(format!("{:?}", e))
     };
