@@ -3,4 +3,4 @@ target
 .vscode
 Cargo.lock
 root
-.env
+./.env
