@@ -6,7 +6,7 @@ use crate::utilities::file_utilities::save_file_to_root_directory;
 
 #[post("/upload")]
 async fn upload_file_from_root_directory(mut payload: Multipart) -> Result<HttpResponse, Error> {
-    save_file_to_root_directory(&mut payload, ROOT_DIR).await;
+    save_file_to_root_directory(&mut payload, "").await;
     Ok(HttpResponse::Ok().body("File uploaded successfully."))
 }
 
