@@ -24,13 +24,16 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .wrap(Logger::default())
-            .wrap(models::auth_models::JwtAuth)
             .service(login_handler)
-            .service(web::resource("/protected").route(web::get().to(protected_resource_handler)))
-            .service(download_file_from_root_directory)
-            .service(download_file_from_user_directory)
-            .service(upload_file_from_root_directory)
-            .service(upload_file_from_user_directory)
+            .service(
+                web::scope("/api")
+                    .wrap(models::auth_models::JwtAuth)
+                    .service(web::resource("/protected").route(web::get().to(protected_resource_handler)))
+                    .service(download_file_from_root_directory)
+                    .service(download_file_from_user_directory)
+                    .service(upload_file_from_root_directory)
+                    .service(upload_file_from_user_directory) // <--
+            )
     })
         .bind(("0.0.0.0", 8080))?
         .run()
