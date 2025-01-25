@@ -1,10 +1,11 @@
-use actix_web::{web, App, HttpServer, middleware::Logger};
-use actix_cors::Cors; // Import the CORS middleware
-use dotenv::dotenv;
+use actix_cors::Cors;
+use actix_web::{middleware::Logger, web, App, HttpServer};
 use crate::endpoints::authentication::{login_handler, protected_resource_handler};
 use crate::endpoints::download::{download_file_from_root_directory, download_file_from_user_directory};
-use crate::endpoints::upload::{upload_file_from_root_directory, upload_file_from_user_directory};
 use crate::endpoints::system_operations::get_user_directory;
+use crate::endpoints::upload::{upload_file_from_root_directory, upload_file_from_user_directory};
+// Import the CORS middleware
+use dotenv::dotenv;
 
 static ROOT_DIR: &str = "./root";
 

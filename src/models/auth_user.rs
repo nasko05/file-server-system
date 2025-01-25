@@ -1,6 +1,6 @@
 // src/auth.rs
 
-use std::env;
+use crate::services::authentication_service::Claims;
 use actix_web::{
     dev::Payload,
     http::header::HeaderValue,
@@ -10,7 +10,7 @@ use actix_web::{
 };
 use futures::future::{ready, Ready};
 use jsonwebtoken::{decode, DecodingKey, Validation};
-use crate::services::authentication_service::Claims;
+use std::env;
 
 /// Wrapper for claims extracted from a valid token.
 pub struct AuthenticatedUser(pub Claims);

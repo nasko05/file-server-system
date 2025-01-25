@@ -1,5 +1,5 @@
-use actix_web::{get, web, HttpRequest, Responder};
 use crate::utilities::file_utilities::read_file_from_directory;
+use actix_web::{get, web, HttpRequest, Responder};
 
 #[get("/download")]
 pub async fn download_file_from_root_directory(req: HttpRequest) -> impl Responder {

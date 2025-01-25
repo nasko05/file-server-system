@@ -1,8 +1,8 @@
+use crate::dao::login_verification::verify_user_credentials;
+use crate::services::authentication_service::Claims;
+use crate::services::authentication_service::generate_jwt;
 use actix_web::{post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
-use crate::dao::login_verification::verify_user_credentials;
-use crate::services::authentication_service::{generate_jwt};
-use crate::services::authentication_service::Claims;
 
 #[derive(Debug, Deserialize)]
 pub struct UserLogin {

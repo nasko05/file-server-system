@@ -1,12 +1,13 @@
+use crate::ROOT_DIR;
 use actix_multipart::Multipart;
 use actix_web::{HttpRequest, HttpResponse, Responder};
 use futures_util::TryStreamExt;
 use log::info;
 use percent_encoding::percent_decode_str;
+use std::path::Path;
 use tokio::io::AsyncWriteExt;
-use crate::ROOT_DIR;
 
-fn sanitize_filename(name: &str) -> String {
+pub fn sanitize_filename(name: &str) -> String {
     name.chars()
         .filter(|c| *c != '/' && *c != '\\')
         .collect()
@@ -14,21 +15,68 @@ fn sanitize_filename(name: &str) -> String {
 
 pub(crate) async fn save_file_to_root_directory(
     payload: &mut Multipart,
-    user_directory: &str
+    user_directory: &str,
 ) -> Result<String, String> {
-    while let Ok(Some(item)) = payload.try_next().await {
-        let mut field = item;
+    let mut target_path: Option<String> = None;
+
+    while let Ok(Some(mut field)) = payload.try_next().await {
         let content_disposition = field.content_disposition();
 
-        if let Some(filename) = content_disposition.expect("File saving fails").get_filename() {
-            let filename = sanitize_filename(filename);
-            let filepath = join_user_directory(user_directory, filename.as_str());
+        // Check for the "path" field
+        if let Some(name) = content_disposition.and_then(|cd| cd.get_name()) {
+            if name == "path" {
+                // Read the path field value
+                let mut path_bytes = Vec::new();
+                while let Ok(Some(chunk)) = field.try_next().await {
+                    path_bytes.extend_from_slice(&chunk);
+                }
+                target_path = Some(String::from_utf8(path_bytes).map_err(|e| {
+                    format!("Failed to parse path as UTF-8: {:?}", e)
+                })?);
+                continue; // Skip processing as a file
+            }
+        }
 
-            // Create file asynchronously
+        // Check for the "file" field
+        if let Some(filename) = content_disposition.and_then(|cd| cd.get_filename()) {
+            let filename = sanitize_filename(filename);
+
+            // Ensure the target path exists and build the final file path
+            let (target_dir, filepath) = match &target_path {
+                Some(path) => {
+                    let full_path = Path::new(ROOT_DIR).join(user_directory).join(path);
+
+                    let directory = full_path.parent().ok_or_else(|| {
+                        format!(
+                            "Invalid path: Unable to determine directory for {:?}",
+                            full_path
+                        )
+                    })?;
+                    (directory.to_path_buf(), full_path.join(&filename))
+                }
+                None => {
+                    let directory = Path::new(user_directory);
+                    (directory.to_path_buf(), directory.join(&filename))
+                }
+            };
+
+            // Ensure the directory exists
+            if let Err(e) = tokio::fs::create_dir_all(&target_dir).await {
+                return Err(format!(
+                    "Failed to create target directory {:?}: {:?}",
+                    target_dir, e
+                ));
+            }
+
+            // Create the file asynchronously
             let mut f = match tokio::fs::File::create(&filepath).await {
                 Ok(file) => file,
                 Err(e) => {
-                    return Err(format!("Error creating file {}: {:?}", filepath, e));
+                    return Err(format!(
+                        "Error creating file at {:?}: {:?}",
+                        filepath.display(),
+                        e
+                    ));
                 }
             };
 
@@ -38,12 +86,13 @@ pub(crate) async fn save_file_to_root_directory(
                     return Err(format!("Error writing chunk: {:?}", e));
                 }
             }
+
+            println!("File saved successfully: {:?}", filepath);
         }
     }
 
     Ok("Successfully saved file!".to_string())
 }
-
 pub(crate) async fn read_file_from_directory(
     req: HttpRequest,
     user_directory: &str,
