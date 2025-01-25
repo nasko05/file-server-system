@@ -16,7 +16,7 @@ pub async fn login_handler(user_info: web::Json<UserLogin>) -> impl Responder {
         user_info.username.as_str(), user_info.password.as_str()
     ).await {
         Ok(id) => id,
-        Err(e) => return HttpResponse::InternalServerError().body(format!("{:?}", e))
+        Err(e) => return HttpResponse::NotFound().body(format!("{:?}", e))
     };
     match generate_jwt(user_id) {
         Ok(token) => HttpResponse::Ok().json(serde_json::json!({ "token": token })),
