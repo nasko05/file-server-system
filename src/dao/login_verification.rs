@@ -1,8 +1,8 @@
+use bcrypt::verify;
 use deadpool_postgres::{Manager, ManagerConfig, Pool, RecyclingMethod};
-use tokio_postgres::{Config, NoTls};
 use once_cell::sync::Lazy;
 use std::env;
-use bcrypt::verify;
+use tokio_postgres::{Config, NoTls};
 
 static DB_POOL: Lazy<Pool> = Lazy::new(|| {
     let host = env::var("POSTGRESQL_HOST").expect("POSTGRESQL_HOST must be set");

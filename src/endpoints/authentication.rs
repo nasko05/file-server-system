@@ -1,8 +1,8 @@
+use crate::dao::login_verification::verify_user_credentials;
+use crate::services::authentication_service::Claims;
+use crate::services::authentication_service::generate_jwt;
 use actix_web::{post, web, HttpMessage, HttpRequest, HttpResponse, Responder};
 use serde::Deserialize;
-use crate::dao::login_verification::verify_user_credentials;
-use crate::services::authentication_service::{generate_jwt};
-use crate::services::authentication_service::Claims;
 
 #[derive(Debug, Deserialize)]
 pub struct UserLogin {
@@ -16,7 +16,7 @@ pub async fn login_handler(user_info: web::Json<UserLogin>) -> impl Responder {
         user_info.username.as_str(), user_info.password.as_str()
     ).await {
         Ok(id) => id,
-        Err(e) => return HttpResponse::InternalServerError().body(format!("{:?}", e))
+        Err(e) => return HttpResponse::NotFound().body(format!("{:?}", e))
     };
     match generate_jwt(user_id) {
         Ok(token) => HttpResponse::Ok().json(serde_json::json!({ "token": token })),
