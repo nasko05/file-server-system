@@ -10,7 +10,6 @@ use crate::endpoints::system_operations::get_file_structure::get_user_directory;
 use crate::endpoints::system_operations::upload::{upload_file_from_root_directory, upload_file_from_user_directory};
 
 static ROOT_DIR: &str = "./root";
-static ROOT: &str = "root";
 pub mod endpoints;
 mod services;
 mod models;

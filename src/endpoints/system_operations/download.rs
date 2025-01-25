@@ -1,5 +1,5 @@
 use crate::services::file_structure::file_utilities::read_file_from_any_directory;
-use actix_web::{get, post, web, HttpRequest, HttpResponse, Responder};
+use actix_web::{post, web, HttpRequest, HttpResponse, Responder};
 use log::info;
 use crate::models::system_operations::download_file_request::DownloadFileRequest;
 
