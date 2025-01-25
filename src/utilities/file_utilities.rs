@@ -1,4 +1,4 @@
-use crate::ROOT_DIR;
+use crate::{ROOT, ROOT_DIR};
 use actix_multipart::Multipart;
 use actix_web::{HttpRequest, HttpResponse, Responder};
 use futures_util::TryStreamExt;
@@ -39,42 +39,41 @@ pub(crate) async fn save_file_to_root_directory(
 
         // Check for the "file" field
         if let Some(filename) = content_disposition.and_then(|cd| cd.get_filename()) {
-            let filename = sanitize_filename(filename);
+            let sanitized_filename = sanitize_filename(filename);
 
-            // Ensure the target path exists and build the final file path
-            let (target_dir, filepath) = match &target_path {
-                Some(path) => {
-                    let full_path = Path::new(ROOT_DIR).join(user_directory).join(path);
+            // Build the full path and separate directory from the filename
+            let sanitized_path = target_path
+                .as_deref()
+                .unwrap_or("")
+                .trim_start_matches('/'); // Remove leading slash
+            let full_path = Path::new(ROOT_DIR)
+                .join(user_directory)
+                .join(sanitized_path);
 
-                    let directory = full_path.parent().ok_or_else(|| {
-                        format!(
-                            "Invalid path: Unable to determine directory for {:?}",
-                            full_path
-                        )
-                    })?;
-                    (directory.to_path_buf(), full_path.join(&filename))
-                }
-                None => {
-                    let directory = Path::new(user_directory);
-                    (directory.to_path_buf(), directory.join(&filename))
-                }
-            };
+            let directory = full_path.parent().ok_or_else(|| {
+                format!(
+                    "Invalid path: Unable to determine directory for {:?}",
+                    full_path
+                )
+            })?;
+
+            let file_path = directory.join(&sanitized_filename); // Append filename to directory
 
             // Ensure the directory exists
-            if let Err(e) = tokio::fs::create_dir_all(&target_dir).await {
+            if let Err(e) = tokio::fs::create_dir_all(directory).await {
                 return Err(format!(
                     "Failed to create target directory {:?}: {:?}",
-                    target_dir, e
+                    directory, e
                 ));
             }
 
             // Create the file asynchronously
-            let mut f = match tokio::fs::File::create(&filepath).await {
+            let mut f = match tokio::fs::File::create(&file_path).await {
                 Ok(file) => file,
                 Err(e) => {
                     return Err(format!(
                         "Error creating file at {:?}: {:?}",
-                        filepath.display(),
+                        file_path.display(),
                         e
                     ));
                 }
@@ -87,12 +86,13 @@ pub(crate) async fn save_file_to_root_directory(
                 }
             }
 
-            println!("File saved successfully: {:?}", filepath);
+            println!("File saved successfully: {:?}", file_path);
         }
     }
 
     Ok("Successfully saved file!".to_string())
 }
+
 pub(crate) async fn read_file_from_directory(
     req: HttpRequest,
     user_directory: &str,

@@ -8,7 +8,7 @@ use crate::endpoints::upload::{upload_file_from_root_directory, upload_file_from
 use dotenv::dotenv;
 
 static ROOT_DIR: &str = "./root";
-
+static ROOT: &str = "root";
 mod endpoints;
 mod utilities;
 mod services;
