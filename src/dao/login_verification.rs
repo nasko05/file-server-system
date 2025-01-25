@@ -65,7 +65,7 @@ pub async fn verify_user_credentials(username: &str, password: &str) -> Result<S
     }
 }
 
-pub async fn check_privileges(user_role: &str) -> Result<&i32, String> {
+pub async fn check_privileges(user_role: &str) -> Result<i32, String> {
 
     // Acquire a client from the pool (async)
     let client = DB_POOL
@@ -76,7 +76,7 @@ pub async fn check_privileges(user_role: &str) -> Result<&i32, String> {
     // Query the stored password hash
     let rows = client
         .query(
-            "SELECT privelege_level FROM privelege_level WHERE role = $1",
+            "SELECT privilege_level FROM privilege_level WHERE role = $1",
             &[&user_role],
         )
         .await
@@ -88,6 +88,7 @@ pub async fn check_privileges(user_role: &str) -> Result<&i32, String> {
 
     // Extract the password hash from the first row
     let row = &rows[0];
-    let privilege = row.get("privelege_level");
-    privilege
+    let privilege: i16 = row.get("privilege_level");
+    let privilege: i32 = privilege.into();
+    Ok(privilege)
 }

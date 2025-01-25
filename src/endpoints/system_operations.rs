@@ -9,11 +9,12 @@ async fn get_user_directory(
     path: web::Path<(String,)>,
     auth_user: AuthenticatedUser,
 ) -> impl Responder {
+    println!("Got path {:?}", &path.0);
     let dir_name = &path.0;
     let claims = auth_user.0; // 'claims' is the decoded JWT data
 
-    let to_be_accessed = check_privileges(dir_name).await.expect(format!("The role {} does not exist", dir_name).into());
-    let actual_privileges = check_privileges(claims.sub.as_str()).await.expect(format!("The role {} does not exist", claims.sub.as_str()).into());
+    let to_be_accessed = check_privileges(dir_name).await.expect(format!("The role {} does not exist", dir_name).as_str());
+    let actual_privileges = check_privileges(claims.sub.as_str()).await.expect(format!("The role {} does not exist", claims.sub.as_str()).as_str());
 
     // Compare the route param to the user's token role
     if actual_privileges < to_be_accessed {

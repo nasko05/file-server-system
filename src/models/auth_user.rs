@@ -1,5 +1,6 @@
 // src/auth.rs
 
+use std::env;
 use actix_web::{
     dev::Payload,
     http::header::HeaderValue,
@@ -40,10 +41,10 @@ impl FromRequest for AuthenticatedUser {
 
         // 3) Decode + validate JWT.
         // You should store/use a real secret or public key for production.
-        let secret = b"my-very-secret";
+        let secret = env::var("JWT_TOKEN_SECRET").expect("JWT_TOKEN_SECRET must be set");
         let validation = Validation::default();
 
-        match decode::<Claims>(&token_str, &DecodingKey::from_secret(secret), &validation) {
+        match decode::<Claims>(&token_str, &DecodingKey::from_secret(secret.as_ref()), &validation) {
             Ok(decoded) => {
                 let claims = decoded.claims;
                 ready(Ok(AuthenticatedUser(claims)))
