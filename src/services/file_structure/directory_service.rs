@@ -1,7 +1,7 @@
 use crate::dao::login_verification::check_privileges;
-use crate::models::directory_tree::DirTree;
 use std::path::Path;
 use std::{fs, io};
+use crate::models::file_structure::directory_tree::DirTree;
 
 pub fn build_dir_tree(path: &Path) -> io::Result<DirTree> {
     let name = path

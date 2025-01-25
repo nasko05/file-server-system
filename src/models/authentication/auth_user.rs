@@ -1,6 +1,6 @@
 // src/auth.rs
 
-use crate::services::authentication_service::Claims;
+use crate::services::authentication::authentication_service::Claims;
 use actix_web::{
     dev::Payload,
     http::header::HeaderValue,

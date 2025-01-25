@@ -1,10 +1,10 @@
-use crate::services::authentication_service::validate_jwt_token;
 use actix_service::{Service, Transform};
 use actix_web::dev::{ServiceRequest, ServiceResponse};
 use actix_web::HttpMessage;
 use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::task::{Context, Poll};
+use crate::services::authentication::authentication_service::validate_jwt_token;
 
 pub(crate) struct JwtAuth;
 

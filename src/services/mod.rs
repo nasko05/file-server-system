@@ -1,2 +1,2 @@
-pub mod authentication_service;
-pub mod directory_service;
+pub mod authentication;
+pub mod file_structure;

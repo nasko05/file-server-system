@@ -1,16 +1,17 @@
 use actix_cors::Cors;
 use actix_web::{middleware::Logger, web, App, HttpServer};
-use crate::endpoints::authentication::{login_handler, protected_resource_handler};
-use crate::endpoints::download::{download_file_from_user_directory};
-use crate::endpoints::system_operations::get_user_directory;
-use crate::endpoints::upload::{upload_file_from_root_directory, upload_file_from_user_directory};
 // Import the CORS middleware
 use dotenv::dotenv;
+use models::authentication;
+use crate::endpoints::authentication::authentication::{login_handler, protected_resource_handler};
+use crate::endpoints::system_operations::delete::{delete_file, delete_user_directory};
+use crate::endpoints::system_operations::download::download_file_from_user_directory;
+use crate::endpoints::system_operations::get_file_structure::get_user_directory;
+use crate::endpoints::system_operations::upload::{upload_file_from_root_directory, upload_file_from_user_directory};
 
 static ROOT_DIR: &str = "./root";
 static ROOT: &str = "root";
-mod endpoints;
-mod utilities;
+pub mod endpoints;
 mod services;
 mod models;
 mod dao;
@@ -40,12 +41,14 @@ async fn main() -> std::io::Result<()> {
             .service(login_handler)
             .service(
                 web::scope("/api")
-                    .wrap(models::auth_models::JwtAuth)
+                    .wrap(authentication::auth_models::JwtAuth)
                     .service(web::resource("/protected").route(web::get().to(protected_resource_handler)))
                     .service(download_file_from_user_directory)
                     .service(upload_file_from_root_directory)
                     .service(upload_file_from_user_directory)
-                    .service(get_user_directory),
+                    .service(get_user_directory)
+                    .service(delete_user_directory)
+                    .service(delete_file),
             )
     })
         .bind(("0.0.0.0", 8080))?

@@ -1,7 +1,7 @@
-use crate::models::auth_user::AuthenticatedUser;
-use crate::services::directory_service::{build_dir_tree, check_privilege_status};
-use actix_web::{delete, get, web, HttpResponse, Responder};
 use std::path::PathBuf;
+use actix_web::{get, web, HttpResponse, Responder};
+use crate::models::authentication::auth_user::AuthenticatedUser;
+use crate::services::file_structure::directory_service::{build_dir_tree, check_privilege_status};
 
 #[get("/directory/{dir_name}")]
 async fn get_user_directory(
@@ -30,18 +30,4 @@ async fn get_user_directory(
             HttpResponse::NotFound().body(format!("Error reading directory: {}", err))
         }
     }
-}
-
-#[delete("/directory/{dir_name}")]
-async fn delete_user_directory(
-    path: web::Path<(String,)>
-) -> impl Responder {
-
-}
-
-#[delete("/file/{file_name}")]
-async fn delete_file(
-    file: web::Path<(String,)>
-) -> impl Responder {
-
 }
