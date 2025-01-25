@@ -4,14 +4,6 @@ use actix_multipart::Multipart;
 use actix_web::{post, web, HttpResponse, Responder};
 use std::path::Path;
 
-#[post("/upload")]
-async fn upload_file_from_root_directory(mut payload: Multipart) -> impl Responder {
-    match save_file_to_root_directory(&mut payload, "").await {
-        Ok(success) => HttpResponse::Ok().body(success),
-        Err(err) => HttpResponse::NotFound().body(err),
-    }
-}
-
 #[post("/upload/{user_uuid}")]
 async fn upload_file_from_user_directory(
     user_uuid: web::Path<String>,

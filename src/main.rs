@@ -7,7 +7,7 @@ use crate::endpoints::authentication::authentication::{login_handler, protected_
 use crate::endpoints::system_operations::delete::{delete_file, delete_user_directory};
 use crate::endpoints::system_operations::download::download_file_from_user_directory;
 use crate::endpoints::system_operations::get_file_structure::get_user_directory;
-use crate::endpoints::system_operations::upload::{upload_file_from_root_directory, upload_file_from_user_directory};
+use crate::endpoints::system_operations::upload::{upload_file_from_user_directory};
 
 static ROOT_DIR: &str = "./root";
 pub mod endpoints;
@@ -43,7 +43,6 @@ async fn main() -> std::io::Result<()> {
                     .wrap(authentication::auth_models::JwtAuth)
                     .service(web::resource("/protected").route(web::get().to(protected_resource_handler)))
                     .service(download_file_from_user_directory)
-                    .service(upload_file_from_root_directory)
                     .service(upload_file_from_user_directory)
                     .service(get_user_directory)
                     .service(delete_user_directory)
