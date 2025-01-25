@@ -20,9 +20,6 @@ async fn get_user_directory(
     // Build a path to: "root/<user>"
     let user_path = PathBuf::from("root").join(dir_name);
 
-    // For safety, you might want to ensure the user can’t escape "root"
-    // e.g., check that user does not contain ".." or something.
-
     match build_dir_tree(&user_path) {
         Ok(tree) => HttpResponse::Ok().json(tree), // Return JSON
         Err(err) => {
