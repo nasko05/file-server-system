@@ -1,8 +1,6 @@
-use crate::{ROOT, ROOT_DIR};
+use crate::{ROOT_DIR};
 use actix_multipart::Multipart;
-use actix_web::{HttpRequest, HttpResponse, Responder};
 use futures_util::TryStreamExt;
-use log::info;
 use percent_encoding::percent_decode_str;
 use std::path::Path;
 use tokio::io::AsyncWriteExt;
@@ -93,37 +91,34 @@ pub(crate) async fn save_file_to_root_directory(
     Ok("Successfully saved file!".to_string())
 }
 
-pub(crate) async fn read_file_from_directory(
-    req: HttpRequest,
-    user_directory: &str,
-) -> impl Responder {
-    let query_str = req.query_string();
-    let parts: Vec<&str> = query_str.split('=').collect();
-    if parts.len() != 2 || parts[0] != "filename" {
-        return HttpResponse::BadRequest().body("Missing or invalid 'filename' parameter.");
-    }
+pub(crate) async fn read_file_from_any_directory(
+    user_name: &str,
+    path: &str,
+    filename: &str
+) -> Result<(Vec<u8>, String), String> {
 
-    let encoded_filename = parts[1];
-    let decoded_filename = match percent_decode_str(encoded_filename).decode_utf8() {
+    // Decode parameters
+    let decoded_path = match percent_decode_str(path).decode_utf8() {
         Ok(decoded) => decoded.into_owned(),
-        Err(_) => {
-            return HttpResponse::BadRequest().body("Failed to decode 'filename' parameter.");
-        }
+        Err(_) => return Err("Failed to decode 'path' parameter.".parse().unwrap()),
     };
 
-    let filepath = join_user_directory(user_directory, &decoded_filename);
-    info!("This is the resulting path: {}", filepath);
+    let decoded_filename = match percent_decode_str(filename).decode_utf8() {
+        Ok(decoded) => decoded.into_owned(),
+        Err(_) => return Err("Failed to decode 'filename' parameter.".parse().unwrap()),
+    };
 
-    match std::fs::read(&filepath) {
-        Ok(contents) => HttpResponse::Ok().body(contents),
-        Err(_) => HttpResponse::NotFound().body(format!("File '{}' not found", decoded_filename)),
+    // Construct the full file path
+    let full_path = Path::new(ROOT_DIR).join(user_name).join(&decoded_path).join(&decoded_filename);
+
+    // Prevent directory traversal attacks
+    if full_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
+        return Err("Invalid file path: directory traversal detected.".parse().unwrap());
     }
-}
 
-fn join_user_directory(user_directory: &str, filename: &str) -> String {
-    if user_directory.is_empty() {
-        format!("{}/{}", ROOT_DIR, filename)
-    } else {
-        format!("{}/{}/{}", ROOT_DIR, user_directory, filename)
+    // Read and return the file
+    match std::fs::read(&full_path) {
+        Ok(contents) => Ok((contents, decoded_filename)),
+        Err(_) => Err(format!("File '{}' not found", decoded_filename)),
     }
 }
