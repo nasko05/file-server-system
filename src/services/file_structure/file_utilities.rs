@@ -1,9 +1,12 @@
+use std::env;
 use crate::{ROOT_DIR};
 use actix_multipart::Multipart;
 use futures_util::TryStreamExt;
 use percent_encoding::percent_decode_str;
 use std::path::Path;
+use log::info;
 use tokio::io::AsyncWriteExt;
+use crate::services::file_structure::directory_service::to_full_path;
 
 pub fn sanitize_filename(name: &str) -> String {
     name.chars()
@@ -97,28 +100,27 @@ pub(crate) async fn read_file_from_any_directory(
     filename: &str
 ) -> Result<(Vec<u8>, String), String> {
 
-    // Decode parameters
-    let decoded_path = match percent_decode_str(path).decode_utf8() {
-        Ok(decoded) => decoded.into_owned(),
-        Err(_) => return Err("Failed to decode 'path' parameter.".parse().unwrap()),
-    };
-
-    let decoded_filename = match percent_decode_str(filename).decode_utf8() {
-        Ok(decoded) => decoded.into_owned(),
-        Err(_) => return Err("Failed to decode 'filename' parameter.".parse().unwrap()),
-    };
-
     // Construct the full file path
-    let full_path = Path::new(ROOT_DIR).join(user_name).join(&decoded_path).join(&decoded_filename);
+    let full_path = Path::new(ROOT_DIR)
+        .join(user_name)
+        .join(path.trim_start_matches('/'))
+        .join(filename);
 
     // Prevent directory traversal attacks
     if full_path.components().any(|c| matches!(c, std::path::Component::ParentDir)) {
         return Err("Invalid file path: directory traversal detected.".parse().unwrap());
     }
-
-    // Read and return the file
-    match std::fs::read(&full_path) {
-        Ok(contents) => Ok((contents, decoded_filename)),
-        Err(_) => Err(format!("File '{}' not found", decoded_filename)),
+    
+    println!("Current path: {}", env::current_dir().unwrap().display());
+    
+    let abs_path = match to_full_path(full_path) {
+        Ok(abs_path) => abs_path,
+        Err(e) => return Err(e),
+    };
+    
+    // Use tokio::fs::read for asynchronous file reading
+    match tokio::fs::read(abs_path).await {
+        Ok(contents) => Ok((contents, filename.into())),
+        Err(_) => Err(format!("File '{}' not found", filename)),
     }
 }

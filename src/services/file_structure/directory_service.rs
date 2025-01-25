@@ -1,5 +1,5 @@
 use crate::dao::login_verification::check_privileges;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 use crate::models::file_structure::directory_tree::DirTree;
 
@@ -47,4 +47,12 @@ pub async fn check_privilege_status(dir_name: &str, user_name: &str) -> Result<(
     }
 
     Ok(())
+}
+
+pub fn to_full_path(relative_path: PathBuf) -> Result<String, String> {
+    let path = Path::new(&relative_path);
+    match path.canonicalize() {
+        Ok(absolute_path) => Ok(absolute_path.to_string_lossy().to_string()),
+        Err(e) => Err(format!("Failed to convert to absolute path: {:?}", e)),
+    }
 }
