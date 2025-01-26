@@ -1,15 +1,17 @@
-use actix_web::{delete, web, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 use std::path::{Path};
+use crate::models::authentication::auth_user::AuthenticatedUser;
 use crate::models::system_operations::delete_file_request::DeleteEntityRequest;
 use crate::ROOT_DIR;
 
 
 
-#[delete("/directory/delete")]
+#[post("/directory/delete")]
 pub async fn delete_user_directory(
-    payload: web::Json<DeleteEntityRequest>
+    payload: web::Json<DeleteEntityRequest>,
+    authenticated_user: AuthenticatedUser
 ) -> impl Responder {
-    let username = payload.username.as_str();
+    let username = authenticated_user.0.sub;
     let dir_name = payload.name.as_str();
     let path = payload.path.as_str();
 
@@ -32,11 +34,12 @@ pub async fn delete_user_directory(
     }
 }
 
-#[delete("/file/delete")]
+#[post("/file/delete")]
 pub async fn delete_file(
-    payload: web::Json<DeleteEntityRequest>
+    payload: web::Json<DeleteEntityRequest>,
+    authenticated_user: AuthenticatedUser
 ) -> impl Responder {
-    let username = payload.username.as_str();
+    let username = authenticated_user.0.sub;
     let filename = payload.name.as_str();
     let path = payload.path.as_str();
 

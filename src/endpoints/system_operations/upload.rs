@@ -5,17 +5,20 @@ use std::path::Path;
 use actix_multipart::Multipart;
 use futures_util::TryStreamExt;
 use log::{error, info};
+use crate::models::authentication::auth_user::AuthenticatedUser;
 use crate::models::system_operations::upload_file_request::UploadFileRequest;
 
 /// POST endpoint to handle file uploads from the user directory.
 #[post("/upload")]
 pub async fn upload_file_from_user_directory(
-    mut payload: Multipart
+    mut payload: Multipart,
+    authenticated_user: AuthenticatedUser
 ) -> impl Responder {
+
+    let username = authenticated_user.0.sub;
     let mut data = UploadFileRequest {
         file: None,
         path: None,
-        username: None,
     };
 
     // Iterate over multipart fields
@@ -40,24 +43,19 @@ pub async fn upload_file_from_user_directory(
                     // Save the file directly by calling the utility function
                     // We need to construct the absolute path first
                     if let Some(ref path) = data.path {
-                        if let Some(ref username) = data.username {
-                            let abs_path = Path::new(ROOT_DIR)
-                                .join(username)
-                                .join(path.trim_start_matches('/'))
-                                .join(&sanitized_filename)
-                                .to_string_lossy()
-                                .to_string();
+                        let abs_path = Path::new(ROOT_DIR)
+                            .join(&username)
+                            .join(path.trim_start_matches('/'))
+                            .join(&sanitized_filename)
+                            .to_string_lossy()
+                            .to_string();
 
-                            match save_file_to_root_directory(&abs_path, &mut field).await {
-                                Ok(success) => info!("{}", success),
-                                Err(err) => {
-                                    error!("{}", err);
-                                    return HttpResponse::InternalServerError().body(err);
-                                },
-                            }
-                        } else {
-                            error!("Username not set before file field");
-                            return HttpResponse::BadRequest().body("Username not provided before file field");
+                        match save_file_to_root_directory(&abs_path, &mut field).await {
+                            Ok(success) => info!("{}", success),
+                            Err(err) => {
+                                error!("{}", err);
+                                return HttpResponse::InternalServerError().body(err);
+                            },
                         }
                     } else {
                         error!("Path not set before file field");
@@ -82,20 +80,6 @@ pub async fn upload_file_from_user_directory(
                     }
                 }
             }
-            "username" => {
-                // Handle username field
-                let mut username_bytes = Vec::new();
-                while let Ok(Some(chunk)) = field.try_next().await {
-                    username_bytes.extend_from_slice(&chunk);
-                }
-                match String::from_utf8(username_bytes) {
-                    Ok(username_str) => data.username = Some(username_str.trim().to_string()),
-                    Err(e) => {
-                        error!("Failed to parse username as UTF-8: {:?}", e);
-                        return HttpResponse::BadRequest().body("Invalid username encoding");
-                    }
-                }
-            }
             _ => {
                 info!("Unknown field: {}", field_name);
                 // Optionally, handle or skip unknown fields
@@ -109,9 +93,6 @@ pub async fn upload_file_from_user_directory(
     }
     if data.path.is_none() {
         return HttpResponse::BadRequest().body("Missing path field");
-    }
-    if data.username.is_none() {
-        return HttpResponse::BadRequest().body("Missing username field");
     }
 
     HttpResponse::Ok().body("File uploaded successfully")

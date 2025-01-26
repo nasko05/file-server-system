@@ -1,7 +1,9 @@
 use crate::dao::login_verification::check_privileges;
 use std::path::{Path, PathBuf};
 use std::{fs, io};
+use std::future::Future;
 use crate::models::file_structure::directory_tree::DirTree;
+use crate::ROOT_DIR;
 
 pub fn build_dir_tree(path: &Path) -> io::Result<DirTree> {
     let name = path
@@ -54,5 +56,25 @@ pub fn to_full_path(relative_path: PathBuf) -> Result<String, String> {
     match path.canonicalize() {
         Ok(absolute_path) => Ok(absolute_path.to_string_lossy().to_string()),
         Err(e) => Err(format!("Failed to convert to absolute path: {:?}", e)),
+    }
+}
+
+pub async fn check_if_directory_exists(directory_name: &str, username: &str, name: &str) -> Result<String, String> {
+    match tokio::fs::metadata(
+        Path::new(ROOT_DIR)
+            .join(username)
+            .join(directory_name)
+            .join(name)
+    ).await {
+        Ok(metadata) => {
+            if metadata.is_dir() {
+                Ok("dir".parse().unwrap())
+            } else if metadata.is_file() {
+                Ok("file".parse().unwrap())
+            } else {
+                Err(format!("The directory '{}' does not exist", directory_name))
+            }
+        },
+        Err(_e) => Err(format!("Directory/File '{}' does not exist", directory_name)),
     }
 }

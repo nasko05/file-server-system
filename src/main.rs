@@ -7,6 +7,7 @@ use crate::endpoints::authentication::authentication::{login_handler, protected_
 use crate::endpoints::system_operations::delete::{delete_file, delete_user_directory};
 use crate::endpoints::system_operations::download::download_file_from_user_directory;
 use crate::endpoints::system_operations::get_file_structure::get_user_directory;
+use crate::endpoints::system_operations::rename::rename_directory;
 use crate::endpoints::system_operations::upload::{upload_file_from_user_directory};
 
 static ROOT_DIR: &str = "./root";
@@ -46,7 +47,8 @@ async fn main() -> std::io::Result<()> {
                     .service(upload_file_from_user_directory)
                     .service(get_user_directory)
                     .service(delete_user_directory)
-                    .service(delete_file),
+                    .service(delete_file)
+                    .service(rename_directory),
             )
     })
         .bind(("0.0.0.0", 8080))?
