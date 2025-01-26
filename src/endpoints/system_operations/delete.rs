@@ -44,7 +44,8 @@ pub async fn delete_file(
     let path = payload.path.as_str();
 
     // Construct the path to the file
-    let file_path = Path::new(ROOT_DIR).join(username).join(path).join(&filename);
+    let full_path = Path::new(ROOT_DIR).join(username).join(path);
+    let file_path = format!("{}{}", full_path.to_str().unwrap(), filename);
 
     // Check if the file exists and delete it
     match tokio::fs::metadata(&file_path).await {
