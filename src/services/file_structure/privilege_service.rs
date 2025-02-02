@@ -14,11 +14,19 @@ impl<T: PrivilegeStore> PrivilegeService<T> {
         dir_name: &str,
         user_name: &str,
     ) -> Result<(), String> {
-        let to_be_accessed = self.store.get_privilege_level(dir_name).await.expect(format!("The role {} does not exist", dir_name).as_str());
-        let actual_privileges = self.store.get_privilege_level(user_name).await.expect(format!("The role {} does not exist", user_name).as_str());
+        let to_be_accessed = self.store.get_privilege_level(dir_name).await;
+        match to_be_accessed {  
+            Ok(privilege) => {},
+            Err(e) => return Err(format!("The role {} does not exist", dir_name).parse().unwrap())
+        }
+        let actual_privileges = self.store.get_privilege_level(user_name).await;
+        match actual_privileges {
+            Ok(privilege) => {},
+            Err(e) => return Err(format!("The role {} does not exist", user_name).parse().unwrap())
+        }
 
         // Compare the route param to the user's token role
-        if actual_privileges < to_be_accessed {
+        if actual_privileges < Ok(to_be_accessed?) {
             // If they don't match, return 403
             return Err(format!(
                 "Your token role is '{}', but you tried to access '{}'",

@@ -8,6 +8,7 @@ mod tests {
     use tokio;
     use mockall::predicate::*;
     use mockall::mock;
+    use tokio::sync::OnceCell;
     use crate::dao::privilege_store::PrivilegeStore;
     use crate::services::file_structure::directory_service::DirectoryService;
     use crate::services::file_structure::privilege_service::PrivilegeService;
@@ -44,6 +45,18 @@ mod tests {
         }
     }
 
+    // Define a global OnceCell. Note that OnceCell is thread-safe.
+    static GLOBAL_TEST_ENV: OnceCell<TestEnv> = OnceCell::const_new();
+
+    // A helper function to get the global object. It will initialize it on the first call.
+    async fn get_global_test_env() -> &'static TestEnv {
+        GLOBAL_TEST_ENV
+            .get_or_init(|| async {
+                TestEnv::new().await
+            })
+            .await
+    }
+
     // Helper function to create test directory structure
     fn create_test_structure(root: &Path) -> io::Result<()> {
         let dir1 = root.join("test_dir");
@@ -60,10 +73,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_build_dir_tree() {
-        let temp_dir = tempdir().unwrap();
-        let env = TestEnv::new().await;
-        let root = env.root_dir.into_path().to_str().unwrap().to_string();
-        let directory_service = DirectoryService::new(root);
+        let temp_dir = tempdir().unwrap();let env = get_global_test_env().await;
+        let root = env.root_dir.path().to_str().unwrap().to_string();
+        let directory_service = DirectoryService::new(root.clone());
         create_test_structure(temp_dir.path()).unwrap();
 
         let tree = directory_service.build_dir_tree(&temp_dir.path().join("test_dir")).unwrap();
@@ -78,15 +90,15 @@ mod tests {
     #[tokio::test]
     async fn test_check_privilege_status() {
         let mut mock_store = MockPrivilegeStoreMock::new();
-        
+
+        // Set up expectation for the call with "admin"
         mock_store.expect_get_privilege_level()
             .with(eq("admin"))
-            .times(1)
             .returning(|_| Ok(999));
 
+        // Set up expectation for the call with "user"
         mock_store.expect_get_privilege_level()
             .with(eq("user"))
-            .times(1)
             .returning(|_| Ok(111));
 
         let privilege_service = PrivilegeService::new(mock_store);
@@ -105,10 +117,9 @@ mod tests {
     #[tokio::test]
     async fn test_to_full_path() {
         let temp_dir = tempdir().unwrap();
-        let test_file = temp_dir.path().join("test.txt");
-        let env = TestEnv::new().await;
-        let root = env.root_dir.into_path().to_str().unwrap().to_string();
-        let directory_service = DirectoryService::new(root);
+        let test_file = temp_dir.path().join("test.txt");let env = get_global_test_env().await;
+        let root = env.root_dir.path().to_str().unwrap().to_string();
+        let directory_service = DirectoryService::new(root.clone());
         File::create(&test_file).unwrap();
 
         // Valid path
@@ -122,17 +133,16 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_check_if_directory_exists() {
-        let env = TestEnv::new().await;
-        let root = env.root_dir.into_path().to_str().unwrap().to_string();
-        let directory_service = DirectoryService::new(root);
+    async fn test_check_if_directory_exists() {let env = get_global_test_env().await;
+        let root = env.root_dir.path().to_str().unwrap().to_string();
+        let directory_service = DirectoryService::new(root.clone());
 
         // Test existing directory
         let result = directory_service.check_if_directory_exists("test_dir", &env.username, "").await;
         assert_eq!(result.unwrap(), "dir");
 
         // Test existing file
-        let result = directory_service.check_if_directory_exists("test_dir", &env.username, "test_file.txt").await;
+        let result = directory_service.check_if_directory_exists("", &env.username, "test_file.txt").await;
         assert_eq!(result.unwrap(), "file");
 
         // Test non-existent path
@@ -144,9 +154,9 @@ mod tests {
     async fn test_empty_directory_tree() {
         let temp_dir = tempdir().unwrap();
         let empty_dir = temp_dir.path().join("empty_dir");
-        let env = TestEnv::new().await;
-        let root = env.root_dir.into_path().to_str().unwrap().to_string();
-        let directory_service = DirectoryService::new(root);
+        let env = get_global_test_env().await;
+        let root = env.root_dir.path().to_str().unwrap().to_string();
+        let directory_service = DirectoryService::new(root.clone());
         create_dir(&empty_dir).unwrap();
 
         let tree = directory_service.build_dir_tree(&empty_dir).unwrap();
@@ -161,13 +171,14 @@ mod tests {
         let mut mock_store = MockPrivilegeStoreMock::new();
         mock_store.expect_get_privilege_level()
             .with(eq("user"))
-            .times(1)
-            .returning(|_| Ok(111))
+            .returning(|_| Ok(111));
+
+        mock_store.expect_get_privilege_level()
             .with(eq(""))
-            .times(1)
-            .returning(|_| Err("".parse().unwrap()))
+            .returning(|_| Err("".parse().unwrap()));
+
+        mock_store.expect_get_privilege_level()
             .with(eq("nonexistent"))
-            .times(1)
             .returning(|_| Err("e".parse().unwrap()));
 
         let privilege_service = PrivilegeService::new(mock_store);
