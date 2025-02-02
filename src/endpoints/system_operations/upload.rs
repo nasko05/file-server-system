@@ -1,4 +1,4 @@
-use crate::services::file_structure::file_utilities::{sanitize_filename, save_file_to_root_directory};
+use crate::services::file_structure::file_service;
 use crate::ROOT_DIR;
 use actix_web::{post, HttpResponse, Responder};
 use std::path::Path;
@@ -16,6 +16,8 @@ pub async fn upload_file_from_user_directory(
 ) -> impl Responder {
 
     let username = authenticated_user.0.sub;
+    let file_service = file_service::FileService::new(ROOT_DIR.into());
+    
     let mut data = UploadFileRequest {
         file: None,
         path: None,
@@ -38,7 +40,7 @@ pub async fn upload_file_from_user_directory(
             "file" => {
                 // Handle file field
                 if let Some(filename) = content_disposition.and_then(|cd| cd.get_filename()) {
-                    let sanitized_filename = sanitize_filename(&filename);
+                    let sanitized_filename = file_service.sanitize_filename(&filename);
 
                     // Save the file directly by calling the utility function
                     // We need to construct the absolute path first
@@ -50,7 +52,7 @@ pub async fn upload_file_from_user_directory(
                             .to_string_lossy()
                             .to_string();
 
-                        match save_file_to_root_directory(&abs_path, &mut field).await {
+                        match file_service.save_file_to_root_directory(&abs_path, &mut field).await {
                             Ok(success) => info!("{}", success),
                             Err(err) => {
                                 error!("{}", err);

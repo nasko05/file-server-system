@@ -1,2 +1,3 @@
 pub mod directory_service;
-pub mod file_utilities;
+pub mod file_service;
+pub mod privilege_service;

@@ -15,6 +15,7 @@ pub mod endpoints;
 mod services;
 mod models;
 mod dao;
+mod tests;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
