@@ -139,7 +139,11 @@ mod tests {
         let root = env.root_dir.path().to_str().unwrap().to_string();
         let user = &env.username;
 
-        let full_path = Path::new(&root).join(user).join("test_file.txt");
+        let full_path = Path::new(&root)
+            .join(user)
+            .join("test_dir")
+            .join("sub_dir")
+            .join("sub_file.txt");
         let file_service = FileService::new(root);
         let test_chunks: Vec<Result<Bytes, actix_multipart::MultipartError>> =
             vec![Ok(Bytes::from_static(b""))];
@@ -150,6 +154,7 @@ mod tests {
         assert_eq!(res, Ok("Successfully saved file!".to_string()));
         let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|e| b"".to_vec());
 
+        println!("{:?}", contents);
         assert_eq!(b"".to_vec(), contents);
     }
 
