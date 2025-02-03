@@ -48,9 +48,7 @@ pub async fn upload_file_from_user_directory(
                         let abs_path = Path::new(ROOT_DIR)
                             .join(&username)
                             .join(path.trim_start_matches('/'))
-                            .join(&sanitized_filename)
-                            .to_string_lossy()
-                            .to_string();
+                            .join(&sanitized_filename);
 
                         match file_service.save_file_to_root_directory(&abs_path, &mut field).await {
                             Ok(success) => info!("{}", success),
