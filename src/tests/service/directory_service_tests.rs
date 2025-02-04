@@ -1,7 +1,7 @@
 #[cfg(test)]
 mod tests {
     use std::fs::{File, create_dir};
-    use std::path::{PathBuf};
+    use std::path::{Path, PathBuf};
     use async_trait::async_trait;
     use tokio;
     use mockall::predicate::*;
@@ -29,9 +29,8 @@ mod tests {
         let directory_service = DirectoryService::new(root.clone());
 
         let tree = directory_service.build_dir_tree(
-            &env.root_dir.path()
-                .join(user)
-                .join("test_dir")
+            user,
+            Path::new("test_dir")
         ).unwrap();
 
         assert_eq!(tree.name, "test_dir");
@@ -107,12 +106,12 @@ mod tests {
     #[tokio::test]
     async fn test_empty_directory_tree() {
         let env = get_global_test_env().await;
-        let empty_dir = env.root_dir.path().join("empty_dir");
+        let empty_dir = env.root_dir.path().join(&env.username).join("empty_dir");
         let root = env.root_dir.path().to_str().unwrap().to_string();
         let directory_service = DirectoryService::new(root.clone());
         create_dir(&empty_dir).unwrap();
 
-        let tree = directory_service.build_dir_tree(&empty_dir).unwrap();
+        let tree = directory_service.build_dir_tree(&env.username, &Path::new("empty_dir")).unwrap();
 
         assert_eq!(tree.name, "empty_dir");
         assert!(tree.files.is_empty());

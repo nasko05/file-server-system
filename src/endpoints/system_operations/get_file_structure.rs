@@ -1,35 +1,24 @@
-use std::path::PathBuf;
-use actix_web::{get, web, HttpResponse, Responder};
-use crate::dao::db_privilege_store::DbPrivilegeStore;
+use std::path::{Path};
+use actix_web::{post, web, HttpResponse, Responder};
+use crate::app_config::AppConfig;
 use crate::models::authentication::auth_user::AuthenticatedUser;
-use crate::ROOT_DIR;
-use crate::services::file_structure::privilege_service;
+use crate::models::file_structure::file_structure_request::FileStructureRequest;
 use crate::services::file_structure::directory_service::DirectoryService;
 
-#[get("/directory/{dir_name}")]
+#[post("/structure")]
 async fn get_user_directory(
-    path: web::Path<(String,)>,
+    payload: web::Json<FileStructureRequest>,
     auth_user: AuthenticatedUser,
+    config: web::Data<AppConfig>
 ) -> impl Responder {
-    println!("Got path {:?}", &path.0);
-    let dir_name = &path.0;
-    let user = auth_user.0.sub.as_str(); // 'claims' is the decoded JWT data
+    let dir_name = Path::new(&payload.path);
+    let user = auth_user.0.sub;
 
-    let store = DbPrivilegeStore;
-    let privilege_service = privilege_service::PrivilegeService::new(store);
-    let directory_service = DirectoryService::new(ROOT_DIR.into());
-    if let Err(err) = privilege_service.check_privilege_status(dir_name, user).await {
-        // Return the error as an HTTP response
-        return HttpResponse::Forbidden().body(err.to_string());
-    }
+    let directory_service = DirectoryService::new(config.root_dir.as_ref().clone());
 
-    // Build a path to: "root/<user>"
-    let user_path = PathBuf::from("root").join(dir_name);
-
-    match directory_service.build_dir_tree(&user_path) {
-        Ok(tree) => HttpResponse::Ok().json(tree), // Return JSON
+    match directory_service.build_dir_tree(&user, dir_name) {
+        Ok(tree) => HttpResponse::Ok().json(tree),
         Err(err) => {
-            // e.g., if directory doesn’t exist, or we lack permissions
             HttpResponse::NotFound().body(format!("Error reading directory: {}", err))
         }
     }
