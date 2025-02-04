@@ -59,6 +59,7 @@ mod tests {
         let body = test::read_body(resp).await;
         let expected_msg = "Some text!";
         assert_eq!(std::str::from_utf8(&body).unwrap(), expected_msg);
+        tokio::fs::remove_file(target_file).await.unwrap();
     }
 
     #[actix_web::test]
@@ -69,7 +70,7 @@ mod tests {
         let user_dir = test_root.join(username);
         let sub_path = "";
         let file_dir = user_dir.join(sub_path);
-        let file_to_download = "test.txt";
+        let file_to_download = "nonexistent_file.txt";
 
         fs::create_dir_all(&file_dir).expect("failed to create files directory");
         // Ensure the directory exists
