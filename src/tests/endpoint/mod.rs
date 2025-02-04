@@ -1,1 +1,2 @@
 mod delete_endpoints_tests;
+mod download_endpoint_tests;
