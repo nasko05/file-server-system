@@ -4,7 +4,6 @@ use std::io;
 use std::io::Write;
 use std::path::Path;
 use tempfile::{tempdir, TempDir};
-use tokio::sync::OnceCell;
 
 pub struct TestEnv {
     pub root_dir: TempDir,
@@ -45,15 +44,8 @@ pub fn create_test_structure(root: &Path, user: &String) -> io::Result<()> {
     Ok(())
 }
 
-// Define a global OnceCell. Note that OnceCell is thread-safe.
-pub static GLOBAL_TEST_ENV: OnceCell<TestEnv> = OnceCell::const_new();
-
 // A helper function to get the global object. It will initialize it on the first call.
-pub async fn get_global_test_env() -> &'static TestEnv {
-    GLOBAL_TEST_ENV
-        .get_or_init(|| async {
-            env::set_var("JWT_TOKEN_SECRET", "some_secret_token");
-            TestEnv::new()
-        })
-        .await
+pub async fn get_global_test_env() -> TestEnv {
+    env::set_var("JWT_TOKEN_SECRET", "some_secret_token");
+    TestEnv::new()
 }
