@@ -1,17 +1,15 @@
 #[cfg(test)]
 mod tests {
-    use tempfile::{tempdir, TempDir};
     use std::fs::{File, create_dir};
-    use std::io;
-    use std::path::{Path, PathBuf};
+    use std::path::{PathBuf};
     use async_trait::async_trait;
     use tokio;
     use mockall::predicate::*;
     use mockall::mock;
-    use tokio::sync::OnceCell;
     use crate::dao::privilege_store::PrivilegeStore;
     use crate::services::file_structure::directory_service::DirectoryService;
     use crate::services::file_structure::privilege_service::PrivilegeService;
+    use crate::tests::test_structure::get_global_test_env;
 
     // Create mock implementation
     mock! {
@@ -23,62 +21,18 @@ mod tests {
         }
     }
 
-    struct TestEnv {
-        root_dir: TempDir,
-        username: String,
-    }
-
-    impl TestEnv {
-        async fn new() -> Self {
-            let root_dir = tempdir().unwrap();
-            let username = "test_user".to_string();
-
-            // Create user directory structure
-            let user_dir = root_dir.path().join(&username);
-            create_dir(&user_dir).unwrap();
-
-            // Create test directory and file
-            create_dir(user_dir.join("test_dir")).unwrap();
-            File::create(user_dir.join("test_file.txt")).unwrap();
-
-            TestEnv { root_dir, username }
-        }
-    }
-
-    // Define a global OnceCell. Note that OnceCell is thread-safe.
-    static GLOBAL_TEST_ENV: OnceCell<TestEnv> = OnceCell::const_new();
-
-    // A helper function to get the global object. It will initialize it on the first call.
-    async fn get_global_test_env() -> &'static TestEnv {
-        GLOBAL_TEST_ENV
-            .get_or_init(|| async {
-                TestEnv::new().await
-            })
-            .await
-    }
-
-    // Helper function to create test directory structure
-    fn create_test_structure(root: &Path) -> io::Result<()> {
-        let dir1 = root.join("test_dir");
-        create_dir(&dir1)?;
-        File::create(dir1.join("file1.txt"))?;
-        File::create(dir1.join("file2.rs"))?;
-
-        let sub_dir = dir1.join("sub_dir");
-        create_dir(&sub_dir)?;
-        File::create(sub_dir.join("sub_file.txt"))?;
-
-        Ok(())
-    }
-
     #[tokio::test]
     async fn test_build_dir_tree() {
-        let temp_dir = tempdir().unwrap();let env = get_global_test_env().await;
+        let env = get_global_test_env().await;
         let root = env.root_dir.path().to_str().unwrap().to_string();
+        let user = &env.username;
         let directory_service = DirectoryService::new(root.clone());
-        create_test_structure(temp_dir.path()).unwrap();
 
-        let tree = directory_service.build_dir_tree(&temp_dir.path().join("test_dir")).unwrap();
+        let tree = directory_service.build_dir_tree(
+            &env.root_dir.path()
+                .join(user)
+                .join("test_dir")
+        ).unwrap();
 
         assert_eq!(tree.name, "test_dir");
         assert_eq!(tree.files, vec!["file1.txt", "file2.rs"]);
@@ -116,10 +70,10 @@ mod tests {
 
     #[tokio::test]
     async fn test_to_full_path() {
-        let temp_dir = tempdir().unwrap();
-        let test_file = temp_dir.path().join("test.txt");let env = get_global_test_env().await;
+        let env = get_global_test_env().await;
         let root = env.root_dir.path().to_str().unwrap().to_string();
         let directory_service = DirectoryService::new(root.clone());
+        let test_file = &env.root_dir.path().join("test.txt");
         File::create(&test_file).unwrap();
 
         // Valid path
@@ -152,9 +106,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_empty_directory_tree() {
-        let temp_dir = tempdir().unwrap();
-        let empty_dir = temp_dir.path().join("empty_dir");
         let env = get_global_test_env().await;
+        let empty_dir = env.root_dir.path().join("empty_dir");
         let root = env.root_dir.path().to_str().unwrap().to_string();
         let directory_service = DirectoryService::new(root.clone());
         create_dir(&empty_dir).unwrap();

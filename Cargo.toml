@@ -12,7 +12,6 @@ futures-util = "0.3"    # For async stream handling
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "fs"] }
 serde = { version = "1.0.217", features = ["derive"] }
 log = "0.4.25"
-percent-encoding = "2.3"
 futures = "0.3.31"
 serde_json = "1.0.137"
 dotenv = "0.15.0"
@@ -24,6 +23,5 @@ actix-cors = "0.7.0"
 tempfile = "3.15.0"
 mockall = "0.11"
 async-trait = "0.1"
-testcontainers = "0.15"
-async-lazy = "0.1.0"
 bytes = "1.9.0"
+env_logger = "0.11.6"

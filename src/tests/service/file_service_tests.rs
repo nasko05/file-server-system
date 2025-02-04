@@ -91,7 +91,7 @@ mod tests {
         let res = file_service.save_file_to_root_directory(&full_path, &mut field).await;
 
         assert_eq!(res, Ok("Successfully saved file!".to_string()));
-        let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|e| b"".to_vec());
+        let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|_| b"".to_vec());
 
         assert_eq!(b"Some data".to_vec(), contents);
     }
@@ -128,7 +128,7 @@ mod tests {
         let res = file_service.save_file_to_root_directory(&full_path, &mut field).await;
 
         assert_eq!(res, Ok("Successfully saved file!".to_string()));
-        let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|e| b"".to_vec());
+        let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|_| b"".to_vec());
 
         assert_eq!(b"Some data".to_vec(), contents);
     }
@@ -152,7 +152,7 @@ mod tests {
         let res = file_service.save_file_to_root_directory(&full_path, &mut field).await;
 
         assert_eq!(res, Ok("Successfully saved file!".to_string()));
-        let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|e| b"".to_vec());
+        let contents = tokio::fs::read(&full_path).await.unwrap_or_else(|_| b"".to_vec());
 
         println!("{:?}", contents);
         assert_eq!(b"".to_vec(), contents);

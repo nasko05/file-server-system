@@ -3,6 +3,9 @@ use actix_web::{middleware::Logger, web, App, HttpServer};
 // Import the CORS middleware
 use dotenv::dotenv;
 use models::authentication;
+use std::sync::Arc;
+use crate::app_config::AppConfig;
+extern crate env_logger;
 use crate::endpoints::authentication::authentication::{login_handler, protected_resource_handler};
 use crate::endpoints::system_operations::delete::{delete_file, delete_user_directory};
 use crate::endpoints::system_operations::download::download_file_from_user_directory;
@@ -16,16 +19,20 @@ mod services;
 mod models;
 mod dao;
 mod tests;
+mod app_config;
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     // Ensure the upload directory exists
+    env_logger::init();
     std::fs::create_dir_all(ROOT_DIR)?;
     dotenv().ok();
+    let root_dir = std::env::var("ROOT_DIR").unwrap_or_else(|_| "./root".to_string());
+    let config = AppConfig { root_dir: Arc::new(root_dir) };
 
     println!("Server running on http://0.0.0.0:8080");
 
-    HttpServer::new(|| {
+    HttpServer::new(move || {
         // Configure CORS
         let cors = Cors::default()
             .allowed_origin("http://localhost:5173") // Allow only this origin
@@ -37,6 +44,7 @@ async fn main() -> std::io::Result<()> {
             .supports_credentials(); // Allow cookies or authorization headers
 
         App::new()
+            .app_data(web::Data::new(config.clone()))
             .wrap(Logger::default())
             .wrap(cors) // Add the CORS middleware
             .service(login_handler)
