@@ -19,11 +19,14 @@ impl DirectoryService {
         let full_path = Path::new(&self.root_dir).join(user).join(path);
 
         // The "name" is the final component of `path`
-        let name = path
+        let mut name = path
             .file_name()
             .map(|os| os.to_string_lossy().into_owned())
             .unwrap_or_default();
 
+        if name.is_empty() {
+            name = user.clone();
+        }
         let mut files = Vec::new();
         let mut dirs = Vec::new();
 
