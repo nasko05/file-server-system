@@ -4,9 +4,8 @@ mod tests {
     use std::io;
     use std::io::Write;
     use std::path::Path;
-    use bytes::Bytes;
-    use futures_util::stream;
     use tempfile::{tempdir, TempDir};
+    use tokio::fs;
     use tokio::sync::OnceCell;
     use crate::services::file_structure::file_service::FileService;
 
@@ -109,5 +108,71 @@ mod tests {
         ).await;
 
         assert!(contents.is_err());
+    }
+    
+    #[tokio::test]
+    async fn test_save_file_bytes_to_root_directory_success() {
+        let env = get_global_test_env().await;
+        let root = env.root_dir.path().to_str().unwrap().to_string();
+        let user = &env.username;
+
+        // Instantiate FileService
+        let file_service = FileService::new(root.clone());
+
+        // Construct a path for the new file inside "test_dir"
+        let new_file_path = Path::new(&root)
+            .join(user)
+            .join("test_dir")
+            .join("saved_bytes.txt");
+
+        // The content we want to write
+        let file_content = b"Hello from test_save_file_bytes";
+
+        // Call the method
+        let result = file_service
+            .save_file_bytes_to_root_directory(&new_file_path, file_content)
+            .await;
+
+        // Verify success
+        assert!(result.is_ok(), "Expected Ok from save_file_bytes_to_root_directory");
+        assert_eq!(result.unwrap(), "Successfully saved file!".to_string());
+
+        // Check the file actually exists and contains the data
+        let saved_contents = fs::read_to_string(&new_file_path)
+            .await.expect("Failed to read back the saved file");
+        assert_eq!(saved_contents, "Hello from test_save_file_bytes");
+    }
+
+    #[tokio::test]
+    async fn test_save_file_bytes_to_root_directory_failure_no_parent_dir() {
+        let env = get_global_test_env().await;
+        let root = env.root_dir.path().to_str().unwrap().to_string();
+        let user = &env.username;
+
+        // Instantiate FileService
+        let file_service = FileService::new(root.clone());
+
+        // Construct a path to a directory that doesn't exist (and we won't create).
+        let no_such_dir_path = Path::new(&root)
+            .join(user)
+            .join("nonexistent_subdir")
+            .join("file_should_fail.txt");
+
+        // Attempt to save; this should fail because "nonexistent_subdir" doesn't exist
+        let result = file_service
+            .save_file_bytes_to_root_directory(&no_such_dir_path, b"some data")
+            .await;
+
+        // We expect an error
+        assert!(result.is_err(), "Expected Err when parent directories do not exist");
+        let err_msg = result.err().unwrap();
+        assert!(
+            err_msg.contains("Error creating file"),
+            "Expected creation error; got: {}",
+            err_msg
+        );
+
+        // Confirm the file was not created
+        assert!(!no_such_dir_path.exists(), "File should not exist after failure");
     }
 }
