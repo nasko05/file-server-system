@@ -3,7 +3,6 @@
 A Rust backend application used as a service for managing files, much like the enterprise products: Google Drive, 
 iCloud and such. The purpose is to serve as a learning project for me to master backend architecture, REST API, Rust,
 automated testing and such. It is in no way intended to be used for commercial purposes.
-## ff
 
 # 2. Installation
 ## 2.1 Installing Rust
@@ -54,6 +53,17 @@ cargo run
 There might be problems with opening up a port if it is already busy. In that case one must free up port 8080.
 
 # 3. Structure of the filesystem
+The structure of the file system of the application is as follows:
+- There is a centralized root_dir(that by default is created at `./root` meaning it will get created inside 
+the application folder)
+- Inside there is a folder for each user
+- The idea is that a user can only access their own folder and noone else's
+- In the future, there will be admin access and more sophisticated access policy that allows a user to have 
+some group and access every folder in the group with some privilege level as well
+
+So a user, named `test_user`, will have their own folder, named `test_user`, inside the root dir. All relative pathing
+should start from there. So if a user wants to download a file in the following path: `pictures/holiday_12_2022/some_picture.png`
+the path will be `pictures/holiday_12_2022` and the filename will be `some_picture.png`.
 
 # 4. Endpoints
 The workflow must always start with authentication. There is a single endpoint for authenticating the user. A **POST** 
@@ -106,11 +116,31 @@ Look at [structure](#3-structure-of-the-filesystem) for more information on how 
 [FileStructureRequest](#filestructurerequest) for more information about the model.
 
 ## 4.4 Deleting User Directory
+This endpoint deletes a directory inside the user directory.
+
+Send a **POST** request to `/api/directory/delete` with the following body(check [DeleteEntityRequest](#deletingentityrequest)):
+```json
+{
+    "path": "<path>",
+    "name": "<name>"
+}
+```
 
 ## 4.5 Deleting User File
+Similar to [4.4](#44-deleting-user-directory) the only difference is the endpoint.
 
-## 4.6 Renaming Directory
+Send a **POST** request to `/api/file/delete`.
+## 4.6 Renaming Directory/File
+To rename a directory/file the request will be:
 
+**POST** `/directory/rename` with the following body(look at []()):
+```json
+{
+  "path": "<path>", 
+  "old_name": "<old_name>", 
+  "new_name": "<new_name>"
+}
+```
 # Appendix
 Additional information about the application
 ## Models
@@ -133,5 +163,20 @@ pub struct DownloadFileRequest {
 ```rust
 pub struct FileStructureRequest {
     pub path: String
+}
+```
+### DeletingEntityRequest
+```rust
+pub struct DeleteEntityRequest {
+    pub path: String,
+    pub name: String,
+}
+```
+### RenameItemRequest
+```rust
+pub struct RenameItemRequest {
+    pub path: String,
+    pub old_name: String,
+    pub new_name: String
 }
 ```
