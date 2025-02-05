@@ -124,11 +124,11 @@ impl DirectoryService {
             let mut zip = ZipWriter::new(&mut temp_file);
             let options = FileOptions::default();
 
-            for entry in WalkDir::new(dir_path.clone()) {
+            for entry in WalkDir::new(&dir_path) {
                 let entry = entry.unwrap();
                 let file_path = entry.path();
                 if file_path.is_file() {
-                    let relative_path = file_path.strip_prefix(dir_path.clone()).unwrap();
+                    let relative_path = file_path.strip_prefix(&dir_path).unwrap();
                     let name_in_zip = relative_path.to_string_lossy();
 
                     zip.start_file(name_in_zip, options).unwrap();
@@ -139,11 +139,8 @@ impl DirectoryService {
             zip.finish().unwrap();
         }
 
-        // 3. Rewind the file so we can read it into the HTTP response
         temp_file.as_file_mut().seek(SeekFrom::Start(0)).unwrap();
 
-        // 4. Stream or read the file contents in your response
-        // (For large files, you might do a streaming approach. For simplicity, read to memory here.)
         let data = fs::read(temp_file.path()).unwrap();
 
         Ok(data)
