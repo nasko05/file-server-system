@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 use std::{fs, io};
+use actix_web::http::uri::PathAndQuery;
+use actix_web::ResponseError;
 use crate::models::file_structure::directory_tree::DirTree;
 
 pub struct DirectoryService {
@@ -79,6 +81,23 @@ impl DirectoryService {
                 }
             },
             Err(_e) => Err(format!("Directory/File '{}' does not exist", directory_name)),
+        }
+    }
+    
+    pub async fn create_directory(
+        &self, 
+        user: &String,
+        path: &String,
+        name: &String
+    ) -> Result<String, (u16, String)> {
+        let path = Path::new(&self.root_dir)
+            .join(user)
+            .join(path)
+            .join(name);
+        
+        match tokio::fs::create_dir(path).await { 
+            Ok(m) => Ok("Successfully created the dir!".into()),
+            Err(e) => Err((400, e.to_string()))
         }
     }
 }

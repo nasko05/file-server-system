@@ -8,6 +8,7 @@ use crate::app_config::AppConfig;
 extern crate env_logger;
 use crate::endpoints::authentication::authentication::{login_handler, protected_resource_handler};
 use crate::endpoints::system_operations::delete::{delete_file, delete_user_directory};
+use crate::endpoints::system_operations::directory::create_directory;
 use crate::endpoints::system_operations::download::download_file_from_user_directory;
 use crate::endpoints::system_operations::get_file_structure::get_user_directory;
 use crate::endpoints::system_operations::rename::rename_directory;
@@ -57,7 +58,8 @@ async fn main() -> std::io::Result<()> {
                     .service(get_user_directory)
                     .service(delete_user_directory)
                     .service(delete_file)
-                    .service(rename_directory),
+                    .service(rename_directory)
+                    .service(create_directory),
             )
     })
         .bind(("0.0.0.0", 8080))?
