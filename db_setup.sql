@@ -23,6 +23,6 @@ create table if not exists privilege_level (
     privelege_level SMALLINT NOT NULL
     );
 
-INSERT INTO privilege_level (role, privelege_level) VALUES ('admin', 999)
+INSERT INTO privilege_level (role, privelege_level) VALUES ('admin', 999);
 
 SELECT * FROM privilege_level
