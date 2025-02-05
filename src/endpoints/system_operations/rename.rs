@@ -1,20 +1,23 @@
-use std::path::Path;
 use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::http::StatusCode;
+use crate::app_config::AppConfig;
 use crate::models::authentication::auth_user::AuthenticatedUser;
 use crate::models::system_operations::rename_item_request::RenameItemRequest;
-use crate::ROOT_DIR;
 use crate::services::file_structure::directory_service::DirectoryService;
+use crate::services::file_structure::rename_service::RenameService;
 
 #[post("/directory/rename")]
 pub async fn rename_directory(
     req: web::Json<RenameItemRequest>,
-    authenticated_user: AuthenticatedUser
+    authenticated_user: AuthenticatedUser,
+    config: web::Data<AppConfig>
 ) -> impl Responder {
     let username = authenticated_user.0.sub;
-    let path = req.path.as_str();
-    let old_name = req.old_name.as_str();
-    let new_name = req.new_name.as_str();
-    let directory_service = DirectoryService::new(ROOT_DIR.into());
+    let path = &req.path;
+    let old_name = &req.old_name;
+    let new_name = &req.new_name;
+    let directory_service = DirectoryService::new(config.root_dir.as_ref().clone());
+    let rename_service = RenameService::new(config.root_dir.as_ref().clone());
     
     match directory_service.check_if_directory_exists(path, &username, old_name).await {
         Ok(a) => { 
@@ -26,11 +29,13 @@ pub async fn rename_directory(
     }
     
     
-    match tokio::fs::rename(
-        Path::new(ROOT_DIR).join(&username).join(path).join(old_name),
-        Path::new(ROOT_DIR).join(&username).join(path).join(new_name)
+    match rename_service.rename_directory(
+        &username,
+        path,
+        old_name,
+        new_name
     ).await {
-        Ok(_) => HttpResponse::Ok().body("Successfully renamed"),
-        Err(e) => HttpResponse::InternalServerError().body(format!("Error: {}", e)),
+        Ok(msg) => HttpResponse::Ok().body(msg),
+        Err((code, msg)) => HttpResponse::build(StatusCode::try_from(code).unwrap()).body(msg)
     }
 }

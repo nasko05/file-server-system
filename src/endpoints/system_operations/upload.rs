@@ -1,10 +1,10 @@
 use crate::services::file_structure::file_service;
-use crate::ROOT_DIR;
-use actix_web::{post, HttpResponse, Responder};
+use actix_web::{post, web, HttpResponse, Responder};
 use std::path::Path;
 use actix_multipart::Multipart;
 use futures_util::TryStreamExt;
 use log::{error, info};
+use crate::app_config::AppConfig;
 use crate::models::authentication::auth_user::AuthenticatedUser;
 use crate::models::system_operations::upload_file_request::UploadFileRequest;
 
@@ -12,11 +12,12 @@ use crate::models::system_operations::upload_file_request::UploadFileRequest;
 #[post("/upload")]
 pub async fn upload_file_from_user_directory(
     mut payload: Multipart,
-    authenticated_user: AuthenticatedUser
+    authenticated_user: AuthenticatedUser,
+    config: web::Data<AppConfig>,
 ) -> impl Responder {
-
+    
     let username = authenticated_user.0.sub;
-    let file_service = file_service::FileService::new(ROOT_DIR.into());
+    let file_service = file_service::FileService::new(config.root_dir.as_ref().clone());
     
     let mut data = UploadFileRequest {
         file: None,
@@ -45,7 +46,7 @@ pub async fn upload_file_from_user_directory(
                     // Save the file directly by calling the utility function
                     // We need to construct the absolute path first
                     if let Some(ref path) = data.path {
-                        let abs_path = Path::new(ROOT_DIR)
+                        let abs_path = Path::new(config.root_dir.as_ref())
                             .join(&username)
                             .join(path.trim_start_matches('/'))
                             .join(&sanitized_filename);
