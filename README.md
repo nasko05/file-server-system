@@ -133,7 +133,7 @@ Send a **POST** request to `/api/file/delete`.
 ## 4.6 Renaming Directory/File
 To rename a directory/file the request will be:
 
-**POST** `/directory/rename` with the following body(look at []()):
+**POST** `/directory/rename` with the following body(look at [RenameItemRequest](#renameitemrequest)):
 ```json
 {
   "path": "<path>", 
