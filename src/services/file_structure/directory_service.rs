@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::{fs, io};
 use actix_web::http::uri::PathAndQuery;
 use actix_web::ResponseError;
+use log::error;
 use crate::models::file_structure::directory_tree::DirTree;
 
 pub struct DirectoryService {
@@ -55,7 +56,10 @@ impl DirectoryService {
         let path = Path::new(&relative_path);
         match path.canonicalize() {
             Ok(absolute_path) => Ok(absolute_path.to_string_lossy().to_string()),
-            Err(e) => Err(format!("Failed to convert to absolute path: {:?}", e)),
+            Err(e) => {
+                error!("{}", e);
+                Err(format!("Failed to convert to absolute path: {:?}", e))
+            },
         }
     }
 
@@ -77,10 +81,14 @@ impl DirectoryService {
                 } else if metadata.is_file() {
                     Ok("file".parse().unwrap())
                 } else {
-                    Err(format!("The directory '{}' does not exist", directory_name))
+                    error!("{:?}", metadata);
+                    Err(format!("Entity '{}' is neither a file nor directory", directory_name))
                 }
             },
-            Err(_e) => Err(format!("Directory/File '{}' does not exist", directory_name)),
+            Err(e) => {
+                error!("{}", e);
+                Err(format!("Directory/File '{}' does not exist", directory_name))
+            },
         }
     }
     
@@ -97,7 +105,10 @@ impl DirectoryService {
         
         match tokio::fs::create_dir(path).await { 
             Ok(m) => Ok("Successfully created the dir!".into()),
-            Err(e) => Err((400, e.to_string()))
+            Err(e) => {
+                error!("{}", e);
+                Err((400, e.to_string()))
+            }
         }
     }
 }

@@ -1,4 +1,5 @@
 use std::path::Path;
+use log::error;
 
 pub struct RenameService {
     root_dir: String
@@ -22,7 +23,10 @@ impl RenameService {
             Path::new(&self.root_dir).join(username).join(path).join(new_name)
         ).await {
             Ok(_) => Ok("Successfully renamed".parse().unwrap()),
-            Err(e) => Err((400, format!("Error: {}", e))),
+            Err(e) => {
+                error!("{}", e);
+                Err((400, format!("Error: {}", e)))
+            },
         }
     }
 }

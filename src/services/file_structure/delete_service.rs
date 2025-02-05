@@ -1,4 +1,6 @@
 use std::path::Path;
+use futures_util::future::err;
+use log::error;
 
 pub struct DeleteService {
     root_dir: String
@@ -24,13 +26,20 @@ impl DeleteService {
                 if metadata.is_dir() {
                     match tokio::fs::remove_dir_all(&dir_path).await {
                         Ok(_) => Ok(format!("Directory '{}' deleted successfully.", dir_name)),
-                        Err(err) => Err((500, format!("Failed to delete directory '{}': {:?}", dir_name, err))),
+                        Err(err) => {
+                            error!("{}", err);
+                            Err((500, format!("Failed to delete directory '{}': {:?}", dir_name, err)))
+                        },
                     }
                 } else {
+                    error!("{} is not a directory", dir_name);
                     Err((400, format!("'{}' is not a directory.", dir_name)))
                 }
             }
-            Err(_) => Err((404, format!("Directory '{}' not found.", dir_name))),
+            Err(_) => {
+                error!("{} is not found", dir_name);
+                Err((404, format!("Directory '{}' not found.", dir_name)))
+            },
         }
     }
     
@@ -50,13 +59,20 @@ impl DeleteService {
                 if metadata.is_file() {
                     match tokio::fs::remove_file(file_path).await {
                         Ok(_) => Ok(format!("File '{}' deleted successfully.", filename)),
-                        Err(err) => Err((500, format!("Failed to delete file '{}': {:?}", filename, err))),
+                        Err(err) => {
+                            error!("{}", err);
+                            Err((500, format!("Failed to delete file '{}': {:?}", filename, err)))
+                        },
                     }
                 } else {
+                    error!("{} is not a file", filename);
                     Err((400, format!("'{}' is not a file.", filename)))
                 }
             }
-            Err(_) => Err((404, format!("File '{}' not found.", filename))),
+            Err(_) => {
+                error!("{} is not found", filename);
+                Err((404, format!("File '{}' not found.", filename)))
+            },
         }
     }
 }
