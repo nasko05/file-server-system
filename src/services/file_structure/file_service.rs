@@ -2,6 +2,7 @@ use std::env;
 use futures_util::{TryStream, TryStreamExt};
 use std::path::{Path, PathBuf};
 use bytes::Bytes;
+use tokio::fs::File;
 use tokio::io::AsyncWriteExt;
 use crate::services::file_structure::directory_service::DirectoryService;
 
@@ -20,16 +21,13 @@ impl FileService {
             .collect()
     }
 
-    pub(crate) async fn save_file_to_root_directory<T>(
+    pub(crate) async fn save_file_bytes_to_root_directory(
         &self,
-        abs_path: &PathBuf,
-        field: &mut T,
-    ) -> Result<String, String>
-    where T: TryStream<Ok = Bytes, Error = actix_multipart::MultipartError> + Unpin,
-    {
-
-        // Create the file asynchronously
-        let mut file = match tokio::fs::File::create(abs_path).await {
+        abs_path: &Path,
+        file_bytes: &[u8],
+    ) -> Result<String, String> {
+        // Create (or overwrite) the file asynchronously
+        let mut file = match File::create(abs_path).await {
             Ok(f) => f,
             Err(e) => {
                 return Err(format!(
@@ -39,11 +37,9 @@ impl FileService {
             }
         };
 
-        // Stream the file chunks directly to disk
-        while let Ok(Some(chunk)) = field.try_next().await {
-            if let Err(e) = file.write_all(&chunk).await {
-                return Err(format!("Error writing to file {:?}: {}", abs_path, e));
-            }
+        // Write the entire byte slice to the file
+        if let Err(e) = file.write_all(file_bytes).await {
+            return Err(format!("Error writing to file {:?}: {}", abs_path, e));
         }
 
         println!("Successfully saved file to {:?}", abs_path);
