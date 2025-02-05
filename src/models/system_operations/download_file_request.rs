@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct DownloadFileRequest {
+pub struct DownloadEntityRequest {
     pub path: String,
-    pub filename: String,
+    pub name: String,
 }

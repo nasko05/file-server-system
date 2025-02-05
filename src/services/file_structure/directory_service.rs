@@ -1,9 +1,12 @@
+use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-use actix_web::http::uri::PathAndQuery;
-use actix_web::ResponseError;
+use actix_web::HttpResponse;
 use log::error;
 use crate::models::file_structure::directory_tree::DirTree;
+use zip::ZipWriter;
+use zip::write::FileOptions;
+use walkdir::WalkDir;
 
 pub struct DirectoryService {
     root_dir: String
@@ -91,9 +94,9 @@ impl DirectoryService {
             },
         }
     }
-    
+
     pub async fn create_directory(
-        &self, 
+        &self,
         user: &String,
         path: &String,
         name: &String
@@ -102,13 +105,47 @@ impl DirectoryService {
             .join(user)
             .join(path)
             .join(name);
-        
-        match tokio::fs::create_dir(path).await { 
-            Ok(m) => Ok("Successfully created the dir!".into()),
+
+        match tokio::fs::create_dir(path).await {
+            Ok(_) => Ok("Successfully created the dir!".into()),
             Err(e) => {
                 error!("{}", e);
                 Err((400, e.to_string()))
             }
         }
+    }
+
+    pub async fn download_directory_streamed(&self, dir_path: PathBuf) -> Result<Vec<u8>, String> {
+        // 1. Create a temp file
+        let mut temp_file = tempfile::NamedTempFile::new().unwrap();
+
+        {
+            // 2. Build the ZIP using ZipWriter (which needs Write + Seek)
+            let mut zip = ZipWriter::new(&mut temp_file);
+            let options = FileOptions::default();
+
+            for entry in WalkDir::new(dir_path.clone()) {
+                let entry = entry.unwrap();
+                let file_path = entry.path();
+                if file_path.is_file() {
+                    let relative_path = file_path.strip_prefix(dir_path.clone()).unwrap();
+                    let name_in_zip = relative_path.to_string_lossy();
+
+                    zip.start_file(name_in_zip, options).unwrap();
+                    let bytes = fs::read(file_path).unwrap();
+                    zip.write_all(&bytes).unwrap();
+                }
+            }
+            zip.finish().unwrap();
+        }
+
+        // 3. Rewind the file so we can read it into the HTTP response
+        temp_file.as_file_mut().seek(SeekFrom::Start(0)).unwrap();
+
+        // 4. Stream or read the file contents in your response
+        // (For large files, you might do a streaming approach. For simplicity, read to memory here.)
+        let data = fs::read(temp_file.path()).unwrap();
+
+        Ok(data)
     }
 }

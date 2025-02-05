@@ -9,7 +9,7 @@ mod tests {
     use crate::app_config::AppConfig;
     use crate::endpoints::system_operations::download::download_file_from_user_directory;
     use crate::models::authentication::auth_models::JwtAuth;
-    use crate::models::system_operations::download_file_request::DownloadFileRequest;
+    use crate::models::system_operations::download_file_request::DownloadEntityRequest;
     use crate::services::authentication::authentication_service::generate_jwt;
     use crate::tests::test_structure::get_global_test_env;
 
@@ -29,8 +29,8 @@ mod tests {
         let mut file = File::create(&target_file).expect("Could not create file!");
         file.write_all(b"Some text!").expect("Could not write to file!");
 
-        let payload = DownloadFileRequest {
-            filename: file_to_download.to_string(),
+        let payload = DownloadEntityRequest {
+            name: file_to_download.to_string(),
             path: sub_path.to_string(),
         };
 
@@ -76,8 +76,8 @@ mod tests {
         // Ensure the directory exists
         let target_file = user_dir.join(sub_path).join(file_to_download);
 
-        let payload = DownloadFileRequest {
-            filename: file_to_download.to_string(),
+        let payload = DownloadEntityRequest {
+            name: file_to_download.to_string(),
             path: sub_path.to_string(),
         };
 
