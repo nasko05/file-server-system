@@ -13,7 +13,7 @@ impl PathService {
         match fs::canonicalize(&path).await {
             Ok(path) => Ok(path),
             Err(err) => {
-                Err((400, format!("Invalid directory '{}': {}", path.display(), err)))
+                Err((404, format!("Invalid directory/file '{}': {}", path.display(), err)))
             }
         }
     }

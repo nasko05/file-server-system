@@ -1,4 +1,6 @@
 use std::path::Path;
+use actix_web::http::StatusCode;
+use actix_web::HttpResponse;
 use log::error;
 use crate::services::file_structure::path_service::PathService;
 
@@ -24,14 +26,14 @@ impl RenameService {
         
         let path_service = PathService::new();
 
-        let canonical_old = path_service.canonicalize_path(&old_path)
-            .await.expect("Could not canonicalize old path");
-        let canonical_new = path_service.canonicalize_path(&new_path)
-            .await.expect("Could not canonicalize new path");
+        let canonical_old = match path_service.canonicalize_path(&old_path).await {
+            Ok(res) => res,
+            Err((code, msg)) => return Err((code, msg))
+        };
         
         match tokio::fs::rename(
             &canonical_old,
-            &canonical_new
+            &new_path
         ).await {
             Ok(_) => Ok("Successfully renamed".parse().unwrap()),
             Err(e) => {

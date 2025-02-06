@@ -2,6 +2,7 @@
 mod tests {
     use std::fs::File;
     use std::io::Write;
+    use std::path::Path;
     use std::sync::Arc;
     use actix_web::{test, App, web, http::header::AUTHORIZATION};
     use tokio::fs;
@@ -129,7 +130,16 @@ mod tests {
         // 6. Verify response: should be 404 "File not found"
         assert_eq!(resp.status(), 404);
         let body = test::read_body(resp).await;
-        assert_eq!(std::str::from_utf8(&body).unwrap(), "File not found");
+        assert_eq!(
+            std::str::from_utf8(&body).unwrap(),
+            format!("Invalid directory/file '{}': {}",
+            Path::new(test_root)
+                .join(username)
+                .join(sub_path)
+                .join(old_dir_name).display(),
+                "No such file or directory (os error 2)"
+            )
+        );
     }
 
     #[actix_web::test]

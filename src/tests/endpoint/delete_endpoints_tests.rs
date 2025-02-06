@@ -4,7 +4,6 @@ mod tests {
     use std::fs;
     use std::fs::File;
     use std::io::Write;
-    use std::ptr::null;
     use std::sync::Arc;
     use actix_web::http::header::AUTHORIZATION;
     use crate::app_config::AppConfig;

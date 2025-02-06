@@ -8,6 +8,7 @@ mod tests {
     use tokio::fs;
     use tokio::sync::OnceCell;
     use crate::services::file_structure::file_service::FileService;
+    use crate::services::locking::directory_locking_manager::DirectoryLockManager;
 
     struct TestEnv {
         root_dir: TempDir,
@@ -66,7 +67,10 @@ mod tests {
         let env = get_global_test_env().await;
         let root = env.root_dir.path().to_str().unwrap().to_string();
 
-        let file_service = FileService::new(root);
+        let file_service = FileService::new(
+            root,
+            DirectoryLockManager::new()
+        );
         let res = file_service.sanitize_filename("valid_name.txt");
         assert_eq!(res, "valid_name.txt");
         let res = file_service.sanitize_filename("back\\\\slashes\\\\.txt");
@@ -81,7 +85,10 @@ mod tests {
         let root = env.root_dir.path().to_str().unwrap().to_string();
         let user = &env.username;
 
-        let file_service = FileService::new(root);
+        let file_service = FileService::new(
+            root,
+            DirectoryLockManager::new()
+        );
 
         let contents = file_service.read_file_from_any_directory(
             user,
@@ -99,7 +106,10 @@ mod tests {
         let root = env.root_dir.path().to_str().unwrap().to_string();
         let user = &env.username;
 
-        let file_service = FileService::new(root);
+        let file_service = FileService::new(
+            root,
+            DirectoryLockManager::new()
+        );
 
         let contents = file_service.read_file_from_any_directory(
             user,
@@ -117,7 +127,10 @@ mod tests {
         let user = &env.username;
 
         // Instantiate FileService
-        let file_service = FileService::new(root.clone());
+        let file_service = FileService::new(
+            root.clone(),
+            DirectoryLockManager::new()
+        );
 
         // Construct a path for the new file inside "test_dir"
         let new_file_path = Path::new(&root)
@@ -150,7 +163,10 @@ mod tests {
         let user = &env.username;
 
         // Instantiate FileService
-        let file_service = FileService::new(root.clone());
+        let file_service = FileService::new(
+            root.clone(),
+            DirectoryLockManager::new()
+        );
 
         // Construct a path to a directory that doesn't exist (and we won't create).
         let no_such_dir_path = Path::new(&root)
@@ -166,10 +182,11 @@ mod tests {
         // We expect an error
         assert!(result.is_err(), "Expected Err when parent directories do not exist");
         let err_msg = result.err().unwrap();
+        assert_eq!(err_msg.0, 500);
         assert!(
-            err_msg.contains("Error creating file"),
-            "Expected creation error; got: {}",
-            err_msg
+            err_msg.1.contains("Error creating file"),
+            "Expected error creating file error; got: {}",
+            err_msg.1
         );
 
         // Confirm the file was not created

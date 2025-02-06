@@ -104,7 +104,7 @@ mod tests {
         let resp = test::call_service(&app, req).await;
 
         println!("{}", resp.status());
-        assert_eq!(resp.status(), 400);
+        assert_eq!(resp.status(), 404);
         assert!(!target_file.exists());
     }
 }

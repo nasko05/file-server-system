@@ -30,7 +30,7 @@ pub async fn download_file_from_user_directory(
             .append_header(("Content-Disposition", format!("attachment; filename=\"{}\"", decoded_filename)))
             .body(content)
         },
-        Err(e) => HttpResponse::BadRequest().body(e.to_string()),
+        Err((code, msg)) => HttpResponse::build(StatusCode::from_u16(code).unwrap()).body(msg)
     }
 }
 

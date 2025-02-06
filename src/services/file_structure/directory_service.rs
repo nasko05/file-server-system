@@ -70,8 +70,11 @@ impl DirectoryService {
             .join(name);
         
         let path_service = PathService::new();
-        let canonical = path_service.canonicalize_path(&path)
-            .await.expect("Could not convert path to canonical");
+        let canonical = match path_service.canonicalize_path(&path).await
+        {
+            Ok(res) => res,
+            Err((code, msg)) => return Err((code, msg))
+        };
 
         match tokio::fs::create_dir(&canonical).await {
             Ok(_) => Ok("Successfully created the dir!".into()),

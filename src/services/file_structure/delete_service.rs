@@ -101,15 +101,15 @@ impl DeleteService {
                         map.remove(&canonical);
                     }
                 }
-                Ok(format!("Directory '{}' deleted successfully.", canonical.display()))
+                Ok(format!("File '{}' deleted successfully.", filename))
             },
             Err(err) => {
                 if err.kind() == std::io::ErrorKind::NotFound {
-                    Err((404, format!("Directory '{}' not found.", canonical.display())))
+                    Err((404, format!("File '{}' not found.", filename)))
                 } else if err.kind() == std::io::ErrorKind::Other {
-                    Err((400, format!("'{}' is not a directory or is inaccessible.", canonical.display())))
+                    Err((400, format!("'{}' is not a file or is inaccessible.", filename)))
                 } else {
-                    Err((500, format!("Failed to delete directory '{}': {:?}", canonical.display(), err)))
+                    Err((500, format!("Failed to delete file '{}': {:?}", filename, err)))
                 }
             }
         }

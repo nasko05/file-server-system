@@ -2,6 +2,7 @@ use crate::services::file_structure::file_service;
 use actix_web::{post, web, HttpResponse, Responder};
 use std::path::Path;
 use actix_multipart::Multipart;
+use actix_web::http::StatusCode;
 use futures_util::TryStreamExt;
 use log::{error, info};
 use crate::app_config::AppConfig;
@@ -138,9 +139,9 @@ pub async fn upload_file_from_user_directory(
         Ok(success) => {
             info!("{}", success);
         }
-        Err(err) => {
-            error!("{}", err);
-            return HttpResponse::InternalServerError().body(err);
+        Err((code, msg)) => {
+            error!("{}", msg);
+            return HttpResponse::build(StatusCode::from_u16(code).unwrap()).body(msg);
         }
     }
 
