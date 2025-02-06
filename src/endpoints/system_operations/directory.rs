@@ -16,7 +16,10 @@ pub async fn create_directory(
     let user = &auth_user.0.sub;
     let root = config.root_dir.as_ref();
     
-    let directory_service = DirectoryService::new(root.clone());
+    let directory_service = DirectoryService::new(
+        root.clone(),
+        config.directory_lock_manager.clone()
+    );
     
     match directory_service.create_directory(user, path, name).await {  
         Ok(msg) => HttpResponse::Ok().body(msg),

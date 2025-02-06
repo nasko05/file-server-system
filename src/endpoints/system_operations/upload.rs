@@ -16,7 +16,10 @@ pub async fn upload_file_from_user_directory(
     config: web::Data<AppConfig>,
 ) -> impl Responder {
     let username = authenticated_user.0.sub;
-    let file_service = file_service::FileService::new(config.root_dir.as_ref().clone());
+    let file_service = file_service::FileService::new(
+        config.root_dir.as_ref().clone(),
+        config.directory_lock_manager.clone()
+    );
 
     // We'll store all fields in this struct while iterating,
     // then process them after the loop to avoid ordering issues.

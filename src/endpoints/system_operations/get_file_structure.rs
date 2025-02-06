@@ -14,7 +14,10 @@ async fn get_user_directory(
     let dir_name = Path::new(&payload.path);
     let user = auth_user.0.sub;
 
-    let directory_service = DirectoryService::new(config.root_dir.as_ref().clone());
+    let directory_service = DirectoryService::new(
+        config.root_dir.as_ref().clone(),
+        config.directory_lock_manager.clone()
+    );
 
     match directory_service.build_dir_tree(&user, dir_name) {
         Ok(tree) => HttpResponse::Ok().json(tree),

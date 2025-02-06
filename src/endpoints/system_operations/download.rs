@@ -1,6 +1,7 @@
 use std::path::Path;
 use crate::services::file_structure::file_service::FileService;
 use actix_web::{post, web, HttpResponse, Responder};
+use actix_web::http::StatusCode;
 use log::info;
 use crate::app_config::AppConfig;
 use crate::models::authentication::auth_user::AuthenticatedUser;
@@ -16,7 +17,10 @@ pub async fn download_file_from_user_directory(
     let username = authenticated_user.0.sub;
     let path = payload.path.as_str();
     let filename = payload.name.as_str();
-    let file_service = FileService::new(config.root_dir.as_ref().clone());
+    let file_service = FileService::new(
+        config.root_dir.as_ref().clone(),
+        config.directory_lock_manager.clone()
+    );
 
     match file_service.read_file_from_any_directory(&username, path, filename).await {
         Ok((content, decoded_filename)) => {
@@ -46,10 +50,13 @@ pub async fn download_directory_from_user_directory(
         .join(path)
         .join(name);
     
-    let directory_service = DirectoryService::new(root.clone());
+    let directory_service = DirectoryService::new(
+        root.clone(),
+        config.directory_lock_manager.clone()
+    );
     
     match directory_service.download_directory_streamed(dir_path).await {
         Ok(data) => HttpResponse::Ok().content_type("application/zip").body(data),
-        Err(e) => HttpResponse::BadRequest().body(e)
+        Err((code, msg)) => HttpResponse::build(StatusCode::from_u16(code).unwrap()).body(msg)
     }
 }

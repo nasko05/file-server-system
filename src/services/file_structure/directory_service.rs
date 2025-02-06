@@ -6,16 +6,20 @@ use crate::models::file_structure::directory_tree::DirTree;
 use zip::ZipWriter;
 use zip::write::FileOptions;
 use walkdir::WalkDir;
+use crate::services::file_structure::path_service::PathService;
+use crate::services::locking::directory_locking_manager::DirectoryLockManager;
 
 pub struct DirectoryService {
-    root_dir: String
+    root_dir: String,
+    directory_lock_manager: DirectoryLockManager
 }
 
 impl DirectoryService {
     
-    pub fn new(root_dir: String) -> Self {
+    pub fn new(root_dir: String, directory_lock_manager: DirectoryLockManager) -> Self {
         Self {
-            root_dir
+            root_dir,
+            directory_lock_manager
         }
     }
 
@@ -54,46 +58,6 @@ impl DirectoryService {
         Ok(DirTree { name, files, dirs })
     }
 
-    pub fn to_full_path(&self, relative_path: PathBuf) -> Result<String, String> {
-        let path = Path::new(&relative_path);
-        match path.canonicalize() {
-            Ok(absolute_path) => Ok(absolute_path.to_string_lossy().to_string()),
-            Err(e) => {
-                error!("{}", e);
-                Err(format!("Failed to convert to absolute path: {:?}", e))
-            },
-        }
-    }
-
-    pub async fn check_if_directory_exists(
-        &self, 
-        directory_name: &str, 
-        username: &str, 
-        name: &str
-    ) -> Result<String, String> {
-        match tokio::fs::metadata(
-            Path::new(&self.root_dir)
-                .join(username)
-                .join(directory_name)
-                .join(name)
-        ).await {
-            Ok(metadata) => {
-                if metadata.is_dir() {
-                    Ok("dir".parse().unwrap())
-                } else if metadata.is_file() {
-                    Ok("file".parse().unwrap())
-                } else {
-                    error!("{:?}", metadata);
-                    Err(format!("Entity '{}' is neither a file nor directory", directory_name))
-                }
-            },
-            Err(e) => {
-                error!("{}", e);
-                Err(format!("Directory/File '{}' does not exist", directory_name))
-            },
-        }
-    }
-
     pub async fn create_directory(
         &self,
         user: &String,
@@ -104,8 +68,12 @@ impl DirectoryService {
             .join(user)
             .join(path)
             .join(name);
+        
+        let path_service = PathService::new();
+        let canonical = path_service.canonicalize_path(&path)
+            .await.expect("Could not convert path to canonical");
 
-        match tokio::fs::create_dir(path).await {
+        match tokio::fs::create_dir(&canonical).await {
             Ok(_) => Ok("Successfully created the dir!".into()),
             Err(e) => {
                 error!("{}", e);
@@ -114,8 +82,21 @@ impl DirectoryService {
         }
     }
 
-    pub async fn download_directory_streamed(&self, dir_path: PathBuf) -> Result<Vec<u8>, String> {
-        // 1. Create a temp file
+    pub async fn download_directory_streamed(&self, dir_path: PathBuf) -> Result<Vec<u8>, (u16, String)> {
+        let path_service = PathService::new();
+        let canonical = match path_service.canonicalize_path(&dir_path).await {
+            Ok(res) => res,
+            Err((code, msg)) => return Err((code, msg)) 
+        };
+        
+        match path_service.check_if_entity_is_dir(&canonical).await {
+            Ok(_) => {},
+            Err((code, msg)) => return Err((code, msg))
+        }
+
+        let lock_arc = self.directory_lock_manager.lock_for_path(canonical.clone()).await;
+        let _guard = lock_arc.lock().await;
+        
         let mut temp_file = tempfile::NamedTempFile::new().unwrap();
 
         {
