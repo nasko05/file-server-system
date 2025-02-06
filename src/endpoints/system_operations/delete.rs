@@ -17,7 +17,10 @@ pub async fn delete_user_directory(
     let dir_name = &payload.name;
     let path = &payload.path;
 
-    let delete_service = DeleteService::new(config.root_dir.as_ref().clone());
+    let delete_service = DeleteService::new(
+        config.root_dir.as_ref().clone(),
+        config.directory_lock_manager.clone()
+    );
 
     match delete_service.delete_directory(&username, path, dir_name).await {
         Ok(msg) => {
@@ -42,7 +45,10 @@ pub async fn delete_file(
     let filename = &payload.name;
     let path = &payload.path;
 
-    let delete_service = DeleteService::new(config.root_dir.as_ref().clone());
+    let delete_service = DeleteService::new(
+        config.root_dir.as_ref().clone(),
+        config.directory_lock_manager.clone()
+    );
 
     match delete_service.delete_file(&username, path, filename).await {
         Ok(msg) => {

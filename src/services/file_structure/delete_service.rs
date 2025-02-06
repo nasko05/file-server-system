@@ -1,14 +1,18 @@
 use std::path::Path;
-use futures_util::future::err;
-use log::error;
+use std::sync::Arc;
+use crate::services::file_structure::path_service::PathService;
+use crate::services::locking::directory_locking_manager::DirectoryLockManager;
 
 pub struct DeleteService {
-    root_dir: String
+    root_dir: String,
+    directory_lock_manager: DirectoryLockManager
 }
 
 impl DeleteService {
-    pub fn new(root_dir: String) -> Self {
-        Self { root_dir }
+    pub fn new(root_dir: String, directory_lock_manager: DirectoryLockManager) -> Self {
+        Self { 
+            root_dir, directory_lock_manager
+        }
     }
     
     pub async fn delete_directory(
@@ -18,28 +22,46 @@ impl DeleteService {
         dir_name: &String
     ) -> Result<String, (u16, String)> {
         // Construct the path to the directory
-        let dir_path = Path::new(&self.root_dir).join(username).join(path).join(dir_name);
+        let dir_path = Path::new(&self.root_dir)
+            .join(username)
+            .join(path)
+            .join(dir_name);
 
-        // Check if the directory exists and delete it
-        match tokio::fs::metadata(&dir_path).await {
-            Ok(metadata) => {
-                if metadata.is_dir() {
-                    match tokio::fs::remove_dir_all(&dir_path).await {
-                        Ok(_) => Ok(format!("Directory '{}' deleted successfully.", dir_name)),
-                        Err(err) => {
-                            error!("{}", err);
-                            Err((500, format!("Failed to delete directory '{}': {:?}", dir_name, err)))
-                        },
+        let path_service = PathService::new();
+        let canonical = match path_service.canonicalize_path(&dir_path).await {
+            Ok(path) => path,
+            Err((code, msg)) => return Err((code, msg))
+        };
+        
+        match path_service.check_if_entity_is_dir(&canonical).await {
+            Ok(_) => {},
+            Err((code, msg)) => return Err((code, msg))
+        }
+        
+        let lock_arc = self.directory_lock_manager.lock_for_path(canonical.clone()).await;
+        let _guard = lock_arc.lock().await;
+        
+        let remove_result = tokio::fs::remove_dir(&canonical).await;
+        match remove_result {
+            Ok(_) => {
+                {
+                    let mut map = self.directory_lock_manager.locks.lock().await;
+                    // If no one else is using this lock, remove it
+                    if Arc::strong_count(&lock_arc) == 1 {
+                        map.remove(&canonical);
                     }
+                }
+                Ok(format!("Directory '{}' deleted successfully.", dir_name))
+            },
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    Err((404, format!("Directory '{}' not found.", dir_name)))
+                } else if err.kind() == std::io::ErrorKind::Other {
+                    Err((400, format!("'{}' is not a directory or is inaccessible.", dir_name)))
                 } else {
-                    error!("{} is not a directory", dir_name);
-                    Err((400, format!("'{}' is not a directory.", dir_name)))
+                    Err((500, format!("Failed to delete directory '{}': {:?}", dir_name, err)))
                 }
             }
-            Err(_) => {
-                error!("{} is not found", dir_name);
-                Err((404, format!("Directory '{}' not found.", dir_name)))
-            },
         }
     }
     
@@ -50,29 +72,46 @@ impl DeleteService {
         filename: &String
     ) -> Result<String, (u16, String)> {
         // Construct the path to the file
-        let full_path = Path::new(&self.root_dir).join(username).join(path).join(filename);
-        let file_path = full_path.to_str().unwrap();
+        let dir_path = Path::new(&self.root_dir)
+            .join(username)
+            .join(path)
+            .join(filename);
 
-        // Check if the file exists and delete it
-        match tokio::fs::metadata(file_path).await {
-            Ok(metadata) => {
-                if metadata.is_file() {
-                    match tokio::fs::remove_file(file_path).await {
-                        Ok(_) => Ok(format!("File '{}' deleted successfully.", filename)),
-                        Err(err) => {
-                            error!("{}", err);
-                            Err((500, format!("Failed to delete file '{}': {:?}", filename, err)))
-                        },
+        let path_service = PathService::new();
+        let canonical = match path_service.canonicalize_path(&dir_path).await {
+            Ok(path) => path,
+            Err((code, msg)) => return Err((code, msg))
+        };
+
+        match path_service.check_if_entity_is_file(&canonical).await {
+            Ok(_) => {},
+            Err((code, msg)) => return Err((code, msg))
+        }
+
+        let lock_arc = self.directory_lock_manager.lock_for_path(canonical.clone()).await;
+        let _guard = lock_arc.lock().await;
+
+        let remove_result = tokio::fs::remove_file(&canonical).await;
+        match remove_result {
+            Ok(_) => {
+                {
+                    let mut map = self.directory_lock_manager.locks.lock().await;
+                    // If no one else is using this lock, remove it
+                    if Arc::strong_count(&lock_arc) == 1 {
+                        map.remove(&canonical);
                     }
+                }
+                Ok(format!("Directory '{}' deleted successfully.", canonical.display()))
+            },
+            Err(err) => {
+                if err.kind() == std::io::ErrorKind::NotFound {
+                    Err((404, format!("Directory '{}' not found.", canonical.display())))
+                } else if err.kind() == std::io::ErrorKind::Other {
+                    Err((400, format!("'{}' is not a directory or is inaccessible.", canonical.display())))
                 } else {
-                    error!("{} is not a file", filename);
-                    Err((400, format!("'{}' is not a file.", filename)))
+                    Err((500, format!("Failed to delete directory '{}': {:?}", canonical.display(), err)))
                 }
             }
-            Err(_) => {
-                error!("{} is not found", filename);
-                Err((404, format!("File '{}' not found.", filename)))
-            },
         }
     }
 }

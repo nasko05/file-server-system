@@ -8,6 +8,7 @@ mod tests {
     use crate::app_config::AppConfig;
     use crate::endpoints::system_operations::upload::upload_file_from_user_directory;
     use crate::services::authentication::authentication_service::generate_jwt;
+    use crate::services::locking::directory_locking_manager::DirectoryLockManager;
     use crate::tests::test_structure::get_global_test_env;
 
     #[actix_web::test]
@@ -46,6 +47,7 @@ mod tests {
         // 4. Create the Actix test application
         let config = AppConfig {
             root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -109,6 +111,7 @@ mod tests {
 
         let config = AppConfig {
             root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -160,6 +163,7 @@ mod tests {
 
         let config = AppConfig {
             root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()

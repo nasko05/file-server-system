@@ -1,7 +1,6 @@
 use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::{fs, io};
-use actix_web::HttpResponse;
 use log::error;
 use crate::models::file_structure::directory_tree::DirTree;
 use zip::ZipWriter;

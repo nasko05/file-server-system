@@ -13,6 +13,7 @@ use crate::endpoints::system_operations::download::{download_directory_from_user
 use crate::endpoints::system_operations::get_file_structure::get_user_directory;
 use crate::endpoints::system_operations::rename::rename_directory;
 use crate::endpoints::system_operations::upload::{upload_file_from_user_directory};
+use crate::services::locking::directory_locking_manager::DirectoryLockManager;
 
 static ROOT_DIR: &str = "./root";
 pub mod endpoints;
@@ -29,7 +30,11 @@ async fn main() -> std::io::Result<()> {
     std::fs::create_dir_all(ROOT_DIR)?;
     dotenv().ok();
     let root_dir = std::env::var("ROOT_DIR").unwrap_or_else(|_| "./root".to_string());
-    let config = AppConfig { root_dir: Arc::new(root_dir) };
+    let lock_manager = DirectoryLockManager::new();
+    let config = AppConfig { 
+        root_dir: Arc::new(root_dir),
+        directory_lock_manager: lock_manager
+    };
 
     println!("Server running on http://0.0.0.0:8080");
 

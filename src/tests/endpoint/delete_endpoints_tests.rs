@@ -4,6 +4,7 @@ mod tests {
     use std::fs;
     use std::fs::File;
     use std::io::Write;
+    use std::ptr::null;
     use std::sync::Arc;
     use actix_web::http::header::AUTHORIZATION;
     use crate::app_config::AppConfig;
@@ -11,6 +12,7 @@ mod tests {
     use crate::models::authentication::auth_models::JwtAuth;
     use crate::models::system_operations::delete_file_request::DeleteEntityRequest;
     use crate::services::authentication::authentication_service::{generate_jwt};
+    use crate::services::locking::directory_locking_manager::DirectoryLockManager;
     use crate::tests::test_structure::get_global_test_env;
 
     /// Test the `/directory/delete` endpoint when the target directory exists.
@@ -41,7 +43,8 @@ mod tests {
             .to_request();
 
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         // Initialize an Actix Web App with the delete_user_directory endpoint.
         let app = test::init_service(
@@ -85,7 +88,8 @@ mod tests {
             .to_request();
         
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -125,7 +129,8 @@ mod tests {
             .to_request();
 
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -169,7 +174,8 @@ mod tests {
             .to_request();
 
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -211,7 +217,8 @@ mod tests {
             .to_request();
 
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -251,7 +258,8 @@ mod tests {
             .to_request();
 
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()

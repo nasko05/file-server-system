@@ -11,6 +11,7 @@ mod tests {
     use crate::models::file_structure::directory_tree::DirTree;
     use crate::models::file_structure::file_structure_request::FileStructureRequest;
     use crate::services::authentication::authentication_service::generate_jwt;
+    use crate::services::locking::directory_locking_manager::DirectoryLockManager;
     use crate::tests::test_structure::get_global_test_env;
     
     #[actix_web::test]
@@ -40,7 +41,8 @@ mod tests {
             .to_request();
 
         let config = AppConfig {
-            root_dir: Arc::new(test_root.to_str().unwrap().to_string())
+            root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()

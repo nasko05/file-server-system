@@ -9,6 +9,7 @@ mod tests {
     use crate::models::system_operations::rename_item_request::RenameItemRequest;
     use crate::endpoints::system_operations::rename::{rename_directory};
     use crate::services::authentication::authentication_service::generate_jwt;
+    use crate::services::locking::directory_locking_manager::DirectoryLockManager;
     use crate::tests::test_structure::get_global_test_env;
     
 
@@ -52,6 +53,7 @@ mod tests {
         // 6. Initialize the Actix test application with your config + service
         let config = AppConfig {
             root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
 
         let app = test::init_service(
@@ -112,6 +114,7 @@ mod tests {
         // 4. Initialize Actix app
         let config = AppConfig {
             root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
@@ -174,6 +177,7 @@ mod tests {
         // 5. Initialize Actix app
         let config = AppConfig {
             root_dir: Arc::new(test_root.to_str().unwrap().to_string()),
+            directory_lock_manager: DirectoryLockManager::new()
         };
         let app = test::init_service(
             App::new()
