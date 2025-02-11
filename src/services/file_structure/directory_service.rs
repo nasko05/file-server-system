@@ -69,14 +69,22 @@ impl DirectoryService {
             .join(path)
             .join(name);
         
+        self.create_directory_path(&path).await
+    }
+
+    pub async fn create_directory_path(
+        &self,
+        path: &PathBuf
+    ) -> Result<String, (u16, String)> {
         let path_service = PathService::new();
-        let canonical = match path_service.canonicalize_path(&path).await
+        let parent_path = path.parent().unwrap().to_path_buf();
+        let canonical = match path_service.canonicalize_path(&parent_path).await
         {
             Ok(res) => res,
             Err((code, msg)) => return Err((code, msg))
         };
 
-        match tokio::fs::create_dir(&canonical).await {
+        match tokio::fs::create_dir(&canonical.join(path.file_name().unwrap())).await {
             Ok(_) => Ok("Successfully created the dir!".into()),
             Err(e) => {
                 error!("{}", e);
