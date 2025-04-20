@@ -141,6 +141,12 @@ To rename a directory/file the request will be:
   "new_name": "<new_name>"
 }
 ```
+
+# 5. Contributing
+Are you going to contribute or in some way fork the application? Then, please have a look at 
+[CONTRIBUTING.md](./CONTRIBUTING.md) for more detailed information about the application mechanisms
+and design. It is also useful to understand some assumptions and design choices made throughout the application.
+
 # Appendix
 Additional information about the application
 ## Models
